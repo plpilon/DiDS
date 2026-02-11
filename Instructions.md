@@ -324,6 +324,20 @@ filters: [
 ]
 ```
 
+You can also use a short string command in `filters`:
+
+```js
+filters: [
+  "AssetDetail.Region -> SummaryByRegion.Region"
+]
+```
+
+Command format:
+
+- `SourceTable.SourceColumn -> TargetTable.TargetColumn`
+- or `TargetTable.TargetColumn <- SourceTable.SourceColumn`
+- optional prefix: `rowclick:`
+
 Behavior:
 
 - click a row in `AssetDetail` to filter `SummaryByRegion` by matching `Region`

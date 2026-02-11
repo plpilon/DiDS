@@ -778,8 +778,64 @@ const CSVTABLE_CONFIG = {
   }
 
   // 10. Event Wiring
+  function parseFilterCommand(commandValue) {
+    const command = String(commandValue || "").trim();
+    if (!command) return null;
+
+    const match = command.match(/^(?:rowclick\s*:\s*)?([\w-]+)\.([^\s.]+)\s*(->|<-)\s*([\w-]+)\.([^\s.]+)$/i);
+    if (!match) return null;
+
+    const leftTable = match[1];
+    const leftColumn = match[2];
+    const arrow = match[3];
+    const rightTable = match[4];
+    const rightColumn = match[5];
+
+    if (arrow === "->") {
+      return {
+        table: rightTable,
+        column: rightColumn,
+        sourceTable: leftTable,
+        sourceColumn: leftColumn,
+        trigger: "rowClick"
+      };
+    }
+
+    return {
+      table: leftTable,
+      column: leftColumn,
+      sourceTable: rightTable,
+      sourceColumn: rightColumn,
+      trigger: "rowClick"
+    };
+  }
+
+  function normalizeFilterDef(filterDef) {
+    if (typeof filterDef === "string") {
+      const parsed = parseFilterCommand(filterDef);
+      if (!parsed) {
+        console.warn("[csvtable] Invalid filter command:", filterDef);
+        return null;
+      }
+      return parsed;
+    }
+
+    if (!filterDef || typeof filterDef !== "object") return null;
+
+    if (typeof filterDef.command === "string" && filterDef.command.trim()) {
+      const parsedCommand = parseFilterCommand(filterDef.command);
+      if (!parsedCommand) {
+        console.warn("[csvtable] Invalid filter command:", filterDef.command);
+        return null;
+      }
+      return Object.assign({}, filterDef, parsedCommand);
+    }
+
+    return filterDef;
+  }
+
   function setupFilters(runtimeConfig) {
-    const filters = runtimeConfig.filters || [];
+    const filters = (runtimeConfig.filters || []).map(normalizeFilterDef).filter(Boolean);
     filters.forEach(function(filterDef) {
       const tState = state.tables[filterDef.table];
       if (!tState) return;
