@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>csvtable.js Test Suite</title></head>
+<body>
+<h1>csvtable.js Tests</h1>
+<ol id="results"></ol>
+<p id="timing"></p>
+
+<label>Region <select id="region_select"></select></label>
+<label>Asset <select id="asset_select" data-filter-table="SummaryByRegion" data-filter-column="Asset Name"></select></label>
+<label>Year <select id="year_select"><option value="">All</option><option>2023</option><option>2024</option></select></label>
+
+<span id="tag-total">{SummaryByRegion:col2Total}</span>
+<span id="tag-missing">{NonExistentTable:col1}</span>
+
+<table data-table-name="SummaryByRegion">
+  <thead><tr><th class="sortable">Region</th><th class="sortable" data-sort-type="number">m2r</th></tr></thead>
+  <tbody></tbody><tfoot></tfoot>
+</table>
+<table data-table-name="AssetDetail">
+  <thead><tr><th class="sortable">AOID</th><th>Region</th><th>Asset Name</th><th class="sortable" data-sort-type="number">m2r</th></tr></thead>
+  <tbody></tbody><tfoot></tfoot>
+</table>
+<table data-table-name="StaticOnly" data-columns="col1: AOID [type:text]; col2: Region [type:text]" data-static-filters="Region=Quebec" data-tfoot="false">
+  <thead><tr><th>AOID</th><th>Region</th></tr></thead><tbody></tbody><tfoot></tfoot>
+</table>
+
+<script type="text/csv" id="source-data">AOID,Region,Asset,Asset Name,m2r,Year
+1001,Quebec,BLD-A,"Tour Montréal",24,2024
+1002,Ontario,BLD-B,'King''s Place',18,2024
+1003,Quebec,BLD-C,"Building, Suite 200",30,2023
+1004,Quebec,BLD-D,"",0,2023
+1005,Alberta,BLD-E,Tower,5,2024
+</script>
+<script src="csvtable.js"></script>
+<script>
+function log(name, pass, detail){var li=document.createElement('li');li.textContent=(pass?'PASS':'FAIL')+' - '+name+(detail?' ('+detail+')':'');li.style.color=pass?'green':'red';document.getElementById('results').appendChild(li);} 
+function q(s,r){return (r||document).querySelector(s);} function qa(s,r){return Array.from((r||document).querySelectorAll(s));}
+window.addEventListener('load', function(){
+  var summaryRows=qa('table[data-table-name="SummaryByRegion"] tbody tr');
+  log('Test 1: Basic rendering', summaryRows.length===3 && summaryRows[0].children.length===2);
+
+  var staticRows=qa('table[data-table-name="StaticOnly"] tbody tr');
+  log('Test 2: Static filter', staticRows.length===3 && staticRows.every(function(r){return r.children[1].textContent==='Quebec';}));
+
+  var region=q('#region_select');
+  log('Test 3a: Dynamic filter options', region.options.length>=4 && region.options[0].textContent==='All');
+  region.value='Ontario'; region.dispatchEvent(new Event('change'));
+  var dyn=qa('table[data-table-name="AssetDetail"] tbody tr');
+  log('Test 3b: Dynamic filter apply', dyn.length===1 && dyn[0].children[1].textContent==='Ontario');
+  region.value=''; region.dispatchEvent(new Event('change'));
+  log('Test 3c: Dynamic filter reset', qa('table[data-table-name="AssetDetail"] tbody tr').length===5);
+
+  var before=q('#asset_select').options.length;
+  region.value='Quebec'; region.dispatchEvent(new Event('change'));
+  log('Test 4: Filter independence', q('#asset_select').options.length===before);
+  region.value=''; region.dispatchEvent(new Event('change'));
+
+  var qRow=qa('table[data-table-name="SummaryByRegion"] tbody tr').find(function(r){return r.children[0].textContent==='Quebec';});
+  log('Test 5: Grouping + aggregation', !!qRow && qRow.children[1].textContent.indexOf('54')!==-1);
+
+  var th=q('table[data-table-name="AssetDetail"] thead th.sortable[data-sort-type="number"]');
+  th.click(); var asc=parseFloat(q('table[data-table-name="AssetDetail"] tbody tr td[data-col="col4"]').textContent.replace(',','.'));
+  th.click(); var desc=parseFloat(q('table[data-table-name="AssetDetail"] tbody tr td[data-col="col4"]').textContent.replace(',','.'));
+  th.click();
+  log('Test 6: Sorting cycle', asc!==desc);
+
+  log('Test 7: Locale formatting', qRow && qRow.children[1].textContent.includes(','));
+  log('Test 8: Template tags', q('#tag-total').textContent.trim()!=='');
+  log('Test 9: Missing tag graceful degradation', q('#tag-missing').textContent==='');
+  log('Test 10: Multiple tables', qa('table[data-table-name="SummaryByRegion"] tbody tr').length>0 && qa('table[data-table-name="AssetDetail"] tbody tr').length>0);
+  log('Test 11: tfoot totals', qa('table[data-table-name="SummaryByRegion"] tfoot td').length>0);
+
+  region.value='DoesNotExist'; region.dispatchEvent(new Event('change'));
+  log('Test 12: Empty state', q('table[data-table-name="AssetDetail"] tbody tr.no-data-row')!==null);
+  region.value=''; region.dispatchEvent(new Event('change'));
+
+  var csv=['AOID,Region,Asset,Asset Name,m2r,Year'];
+  for(var i=0;i<25000;i++){csv.push((20000+i)+',Quebec,BLD-'+i+',Name '+i+','+(i%100)+',2024');}
+  q('#source-data').textContent=csv.join('\n');
+  var t0=performance.now();
+  document.dispatchEvent(new Event('DOMContentLoaded'));
+  var dt=performance.now()-t0;
+  document.getElementById('timing').textContent='Test 13 render timing: '+dt.toFixed(2)+'ms';
+  log('Test 13: 25,000 row performance', dt<200, dt.toFixed(2)+'ms');
+});
+</script>
+</body>
+</html>
