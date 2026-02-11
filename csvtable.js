@@ -69,7 +69,7 @@ const CSVTABLE_CONFIG = {
         } else {
           current += ch;
         }
-      } else if (ch === "\"" && current.length === 0) {
+      } else if ((ch === "\"" || ch === "'") && current.length === 0) {
         quote = ch;
       } else if (ch === ",") {
         out.push(current.trim());
