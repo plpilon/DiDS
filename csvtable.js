@@ -222,8 +222,11 @@ const CSVTABLE_CONFIG = {
 
       let csvText = "";
       let sourceEl = null;
+      const trimmedSource = typeof source === "string" ? source.trim() : "";
+      const isRelativePath = /^\.\.?\//.test(trimmedSource);
+      const isLikelySelector = /^([#\[]|\.[^./])/.test(trimmedSource);
 
-      if (typeof source === "string" && /^([#.\[]|[a-zA-Z][\w-]*[#.\[])/.test(source.trim())) {
+      if (typeof source === "string" && !isRelativePath && isLikelySelector) {
         sourceEl = document.querySelector(source);
       }
 
