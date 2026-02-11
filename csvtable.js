@@ -69,7 +69,7 @@ const CSVTABLE_CONFIG = {
         } else {
           current += ch;
         }
-      } else if (ch === "\"" || ch === "'") {
+      } else if ((ch === "\"" || ch === "'") && current.length === 0) {
         quote = ch;
       } else if (ch === ",") {
         out.push(current.trim());
@@ -221,7 +221,12 @@ const CSVTABLE_CONFIG = {
       }
 
       let csvText = "";
-      const sourceEl = document.querySelector(source);
+      let sourceEl = null;
+
+      if (typeof source === "string" && /^([#.\[]|[a-zA-Z][\w-]*[#.\[])/.test(source.trim())) {
+        sourceEl = document.querySelector(source);
+      }
+
       if (sourceEl && sourceEl.tagName === "SCRIPT" && sourceEl.type === "text/csv") {
         csvText = sourceEl.textContent || "";
       } else {
@@ -348,13 +353,14 @@ const CSVTABLE_CONFIG = {
     const ths = Array.from(tableEl.querySelectorAll("thead th.sortable"));
     if (!ths.length) return;
 
-    ths.forEach(function(th, index) {
+    ths.forEach(function(th) {
+      const fullColumnIndex = Array.from(th.parentNode.children).indexOf(th);
       th.addEventListener("click", function() {
         const tState = state.tables[tableName];
         if (!tState) return;
 
-        if (tState.sort.columnIndex !== index) {
-          tState.sort.columnIndex = index;
+        if (tState.sort.columnIndex !== fullColumnIndex) {
+          tState.sort.columnIndex = fullColumnIndex;
           tState.sort.direction = "asc";
         } else if (tState.sort.direction === "asc") {
           tState.sort.direction = "desc";
@@ -370,7 +376,9 @@ const CSVTABLE_CONFIG = {
         });
 
         if (tState.sort.columnIndex !== null) {
-          const active = ths[tState.sort.columnIndex];
+          const active = ths.find(function(headerEl) {
+            return Array.from(headerEl.parentNode.children).indexOf(headerEl) === tState.sort.columnIndex;
+          });
           if (active) active.classList.add(tState.sort.direction === "asc" ? "sort-asc" : "sort-desc");
         }
 
