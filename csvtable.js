@@ -69,7 +69,7 @@ const CSVTABLE_CONFIG = {
         } else {
           current += ch;
         }
-      } else if ((ch === "\"" || ch === "'") && current.length === 0) {
+      } else if (ch === "\"" && current.length === 0) {
         quote = ch;
       } else if (ch === ",") {
         out.push(current.trim());
@@ -223,8 +223,15 @@ const CSVTABLE_CONFIG = {
       let csvText = "";
       let sourceEl = null;
 
-      if (typeof source === "string" && /^([#.\[]|[a-zA-Z][\w-]*[#.\[])/.test(source.trim())) {
-        sourceEl = document.querySelector(source);
+      if (typeof source === "string") {
+        const trimmedSource = source.trim();
+        if (trimmedSource) {
+          try {
+            sourceEl = document.querySelector(trimmedSource);
+          } catch (_err) {
+            sourceEl = null;
+          }
+        }
       }
 
       if (sourceEl && sourceEl.tagName === "SCRIPT" && sourceEl.type === "text/csv") {
@@ -392,7 +399,7 @@ const CSVTABLE_CONFIG = {
     const col = tableState.columns[tableState.sort.columnIndex];
     if (!col) return rows;
 
-    const sortType = tableState.sortTypes[tableState.sort.columnIndex] || "text";
+    const sortType = col.type === "number" ? "number" : "text";
     const dir = tableState.sort.direction === "desc" ? -1 : 1;
     const sorted = rows.slice();
 
