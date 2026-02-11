@@ -8,32 +8,10 @@ Version: 1.0.0
 // └──────────────────────────────────────────────────────────────────┘
 const CSVTABLE_CONFIG = {
   source: "#source-data",
-  tables: {
-    SummaryByRegion: {
-      columns: "col1: Region [type:text]; col2: m2r [type:number; decimals:0; locale:fr-CA; showColTotal:true]",
-      staticFilters: "",
-      groupBy: "Region",
-      agg: "m2r: sum",
-      tfoot: true,
-      locale: "fr-CA",
-      pager: { enabled: false, rowsPerPage: 10 }
-    },
-    AssetDetail: {
-      columns: "col1: AOID [type:text]; col2: Region [type:text]; col3: Asset Name [type:text]; col4: m2r [type:number; decimals:2]",
-      tfoot: true,
-      pager: { enabled: false, rowsPerPage: 10 }
-    }
-  },
-  filters: [
-    { table: "SummaryByRegion", select: "region_select", column: "Region" },
-    { table: "SummaryByRegion", select: "year_select", column: "Year", static: true },
-    { table: "AssetDetail", select: "region_select", column: "Region" },
-    { table: "SummaryByRegion", sourceTable: "AssetDetail", sourceColumn: "Region", column: "Region", trigger: "rowClick" }
-  ],
+  tables: {},
+  filters: [],
   hooks: {},
-  formatters: {
-    status: function(val) { return Number(val) > 12 ? "Critical" : "OK"; }
-  }
+  formatters: {}
 };
 
 // ┌──────────────────────────────────────────────────────────────────┐
