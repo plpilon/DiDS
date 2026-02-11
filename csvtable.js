@@ -8,29 +8,10 @@ Version: 1.0.0
 // └──────────────────────────────────────────────────────────────────┘
 const CSVTABLE_CONFIG = {
   source: "#source-data",
-  tables: {
-    SummaryByRegion: {
-      columns: "col1: Region [type:text]; col2: m2r [type:number; decimals:0; locale:fr-CA; showColTotal:true]",
-      staticFilters: "",
-      groupBy: "Region",
-      agg: "m2r: sum",
-      tfoot: true,
-      locale: "fr-CA"
-    },
-    AssetDetail: {
-      columns: "col1: AOID [type:text]; col2: Region [type:text]; col3: Asset Name [type:text]; col4: m2r [type:number; decimals:2]",
-      tfoot: true
-    }
-  },
-  filters: [
-    { table: "SummaryByRegion", select: "region_select", column: "Region" },
-    { table: "SummaryByRegion", select: "year_select", column: "Year", static: true },
-    { table: "AssetDetail", select: "region_select", column: "Region" }
-  ],
+  tables: {},
+  filters: [],
   hooks: {},
-  formatters: {
-    status: function(val) { return Number(val) > 12 ? "Critical" : "OK"; }
-  }
+  formatters: {}
 };
 
 // ┌──────────────────────────────────────────────────────────────────┐
@@ -46,7 +27,8 @@ const CSVTABLE_CONFIG = {
     headersIndex: {},
     tables: {},
     selectBindings: {},
-    tableSummaries: {}
+    tableSummaries: {},
+    rowClickSelections: {}
   };
 
   // 1. CSV Parser
@@ -70,7 +52,11 @@ const CSVTABLE_CONFIG = {
           current += ch;
         }
       } else if (ch === "\"" || ch === "'") {
-        quote = ch;
+        if (current.length === 0) {
+          quote = ch;
+        } else {
+          current += ch;
+        }
       } else if (ch === ",") {
         out.push(current.trim());
         current = "";
@@ -269,14 +255,103 @@ const CSVTABLE_CONFIG = {
     return mappedRows.filter(function(rowObj) {
       for (let i = 0; i < bindings.length; i += 1) {
         const b = bindings[i];
-        const select = document.getElementById(b.select);
-        if (!select) continue;
-        const selected = select.value;
-        if (selected === "" || selected === "All") continue;
-        if ((rowObj._source[b.column] || "") !== selected) return false;
+        if (b.select) {
+          const select = document.getElementById(b.select);
+          if (!select) continue;
+          const selected = select.value;
+          if (selected === "" || selected === "All") continue;
+          if ((rowObj._source[b.column] || "") !== selected) return false;
+        } else if (b.trigger === "rowClick") {
+          const key = b.table + "|" + b.column + "|" + b.sourceTable + "|" + b.sourceColumn;
+          const selected = state.rowClickSelections[key] || "";
+          if (selected === "") continue;
+          if ((rowObj._source[b.column] || "") !== selected) return false;
+        }
       }
       return true;
     });
+  }
+
+  function getPagedRows(tableState, sortedRows) {
+    if (!tableState.pager.enabled) {
+      tableState.pager.pageCount = 1;
+      tableState.pager.currentPage = 1;
+      return sortedRows;
+    }
+
+    const rowsPerPage = Math.max(1, parseInt(tableState.pager.rowsPerPage, 10) || 10);
+    const pageCount = Math.max(1, Math.ceil(sortedRows.length / rowsPerPage));
+    tableState.pager.pageCount = pageCount;
+    tableState.pager.currentPage = Math.max(1, Math.min(tableState.pager.currentPage, pageCount));
+
+    const start = (tableState.pager.currentPage - 1) * rowsPerPage;
+    return sortedRows.slice(start, start + rowsPerPage);
+  }
+
+  function getPagerElement(tableEl) {
+    const tableName = tableEl.getAttribute("data-table-name") || "";
+    let pagerEl = document.querySelector('.pager[data-table-name="' + tableName + '"]');
+    if (!pagerEl) {
+      pagerEl = document.createElement("div");
+      pagerEl.className = "pager";
+      pagerEl.setAttribute("data-table-name", tableName);
+      tableEl.insertAdjacentElement("afterend", pagerEl);
+    }
+    return pagerEl;
+  }
+
+  function renderPager(tableName, totalRows) {
+    const tableState = state.tables[tableName];
+    if (!tableState || !tableState.el) return;
+
+    const existing = document.querySelector('.pager[data-table-name="' + tableName + '"]');
+    if (!tableState.pager.enabled) {
+      if (existing) existing.remove();
+      return;
+    }
+
+    const pagerEl = getPagerElement(tableState.el);
+    pagerEl.innerHTML = "";
+    pagerEl.className = "pager pager-container";
+
+    const info = document.createElement("span");
+    info.className = "pager-info";
+    info.textContent = "Rows " + totalRows;
+
+    const controls = document.createElement("div");
+    controls.className = "pager-controls";
+
+    if (tableState.pager.currentPage > 1) {
+      const prev = document.createElement("button");
+      prev.type = "button";
+      prev.className = "pager-btn pager-btn-prev";
+      prev.textContent = "Previous";
+      prev.addEventListener("click", function() {
+        tableState.pager.currentPage -= 1;
+        renderTable(tableName);
+      });
+      controls.appendChild(prev);
+    }
+
+    const current = document.createElement("span");
+    current.className = "pager-page pager-page-current";
+    current.textContent = tableState.pager.currentPage + " / " + tableState.pager.pageCount;
+    controls.appendChild(current);
+
+    if (tableState.pager.currentPage < tableState.pager.pageCount) {
+      const next = document.createElement("button");
+      next.type = "button";
+      next.className = "pager-btn pager-btn-next";
+      next.textContent = "Next";
+      next.addEventListener("click", function() {
+        tableState.pager.currentPage += 1;
+        renderTable(tableName);
+      });
+      controls.appendChild(next);
+    }
+
+    pagerEl.appendChild(info);
+    pagerEl.appendChild(controls);
   }
 
   // 5. Aggregation Engine
@@ -464,6 +539,38 @@ const CSVTABLE_CONFIG = {
     return { tbody: tbody, tfoot: tfoot };
   }
 
+  function replaceTemplateTokens(rootNode, tableName, tableState, context) {
+    const pattern = /\{(\w+):(\w+)\}/g;
+    const walker = document.createTreeWalker(rootNode, NodeFilter.SHOW_TEXT, null);
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+
+    nodes.forEach(function(node) {
+      const text = node.nodeValue || "";
+      if (!pattern.test(text)) {
+        pattern.lastIndex = 0;
+        return;
+      }
+      pattern.lastIndex = 0;
+      node.nodeValue = text.replace(pattern, function(_, refTable, key) {
+        if (refTable !== tableName) return "";
+        if (key === "RowTotal") {
+          return String(context.rowTotal || 0);
+        }
+        if (key.endsWith("Total")) {
+          const colKey = key.slice(0, -5);
+          const col = tableState.columns.find(function(c) { return c.key === colKey; });
+          if (!col) return "";
+          return formatValue(tableState, col, (context.totals && context.totals[colKey]) || 0);
+        }
+        const col = tableState.columns.find(function(c) { return c.key === key; });
+        if (!col) return "";
+        if (!context.row) return "";
+        return formatValue(tableState, col, context.row[key]);
+      });
+    });
+  }
+
   function mapRows(tableState) {
     const mapped = [];
 
@@ -511,10 +618,12 @@ const CSVTABLE_CONFIG = {
 
       const grouped = groupAndAggregate(tableState, dynamicFiltered);
       const sorted = applySort(tableState, grouped);
+      const pagedRows = getPagedRows(tableState, sorted);
       const totalsInfo = computeTotals(tableState, sorted);
       const frag = document.createDocumentFragment();
+      tableState.displayRows = pagedRows;
 
-      if (!sorted.length) {
+      if (!pagedRows.length) {
         const tr = document.createElement("tr");
         tr.className = "no-data-row";
         tr.setAttribute("data-row-index", "0");
@@ -524,35 +633,73 @@ const CSVTABLE_CONFIG = {
         tr.appendChild(td);
         frag.appendChild(tr);
       } else {
-        sorted.forEach(function(row, rowIndex) {
-          const tr = document.createElement("tr");
+        pagedRows.forEach(function(row, rowIndex) {
+          let tr;
+          if (tableState.bodyTemplateRow) {
+            tr = tableState.bodyTemplateRow.cloneNode(true);
+            replaceTemplateTokens(tr, tableName, tableState, {
+              row: row,
+              totals: totalsInfo.totals,
+              rowTotal: totalsInfo.rowTotals[rowIndex] || 0
+            });
+            const tds = tr.querySelectorAll("td");
+            tds.forEach(function(td, tdIndex) {
+              const col = tableState.columns[tdIndex];
+              if (col) td.setAttribute("data-col", col.key);
+            });
+          } else {
+            tr = document.createElement("tr");
+            tableState.columns.forEach(function(col) {
+              const td = document.createElement("td");
+              td.setAttribute("data-col", col.key);
+              td.textContent = formatValue(tableState, col, row[col.key]);
+              tr.appendChild(td);
+            });
+          }
+
           tr.setAttribute("data-row-index", String(rowIndex));
           if (row._isGroup) tr.classList.add("group-row");
 
-          tableState.columns.forEach(function(col) {
-            const td = document.createElement("td");
-            td.setAttribute("data-col", col.key);
-            td.textContent = formatValue(tableState, col, row[col.key]);
-            tr.appendChild(td);
+          const hasRowClick = (tableState.rowClickAsSource || []).some(function(binding) {
+            const key = binding.table + "|" + binding.column + "|" + binding.sourceTable + "|" + binding.sourceColumn;
+            const selected = state.rowClickSelections[key] || "";
+            return selected !== "" && String(row._source[binding.sourceColumn] || row[binding.sourceColumn] || "") === selected;
           });
+          if (hasRowClick) tr.classList.add("row-selected");
 
           frag.appendChild(tr);
         });
       }
 
       parts.tbody.appendChild(frag);
+      renderPager(tableName, sorted.length);
 
       if (tableState.tfoot) {
         const footFrag = document.createDocumentFragment();
-        const tr = document.createElement("tr");
+        let tr;
+        if (tableState.footTemplateRow) {
+          tr = tableState.footTemplateRow.cloneNode(true);
+          replaceTemplateTokens(tr, tableName, tableState, {
+            row: null,
+            totals: totalsInfo.totals,
+            rowTotal: totalsInfo.grandRowTotal
+          });
+          const tds = tr.querySelectorAll("td");
+          tds.forEach(function(td, tdIndex) {
+            const col = tableState.columns[tdIndex];
+            if (col) td.setAttribute("data-col", col.key);
+          });
+        } else {
+          tr = document.createElement("tr");
+          tableState.columns.forEach(function(col) {
+            const td = document.createElement("td");
+            td.setAttribute("data-col", col.key);
+            const baseValue = sorted.length ? (totalsInfo.totals[col.key] || 0) : (col.type === "number" ? 0 : "null");
+            td.textContent = col.type === "number" ? formatValue(tableState, col, baseValue) : String(baseValue || "");
+            tr.appendChild(td);
+          });
+        }
         tr.setAttribute("data-row-index", "0");
-        tableState.columns.forEach(function(col) {
-          const td = document.createElement("td");
-          td.setAttribute("data-col", col.key);
-          const baseValue = sorted.length ? (totalsInfo.totals[col.key] || 0) : (col.type === "number" ? 0 : "null");
-          td.textContent = col.type === "number" ? formatValue(tableState, col, baseValue) : String(baseValue || "");
-          tr.appendChild(td);
-        });
         footFrag.appendChild(tr);
         parts.tfoot.appendChild(footFrag);
       }
@@ -629,6 +776,49 @@ const CSVTABLE_CONFIG = {
       const tState = state.tables[filterDef.table];
       if (!tState) return;
 
+      if (filterDef.trigger === "rowClick") {
+        tState.filters.push(filterDef);
+        const sourceState = state.tables[filterDef.sourceTable];
+        if (!sourceState || !sourceState.el) {
+          console.warn("[csvtable] Source table not found for rowClick filter:", filterDef.sourceTable);
+          return;
+        }
+
+        if (!sourceState.rowClickAsSource) sourceState.rowClickAsSource = [];
+        sourceState.rowClickAsSource.push(filterDef);
+
+        if (!sourceState.el.dataset.csvtableRowClickBound) {
+          const tbody = sourceState.el.querySelector("tbody");
+          if (tbody) {
+            tbody.addEventListener("click", function(evt) {
+              const rowEl = evt.target && evt.target.closest("tr[data-row-index]");
+              if (!rowEl || rowEl.classList.contains("no-data-row")) return;
+              const idx = parseInt(rowEl.getAttribute("data-row-index") || "-1", 10);
+              if (idx < 0) return;
+              const rowData = sourceState.displayRows && sourceState.displayRows[idx];
+              if (!rowData) return;
+
+              (sourceState.rowClickAsSource || []).forEach(function(binding) {
+                const value = String(rowData._source[binding.sourceColumn] || rowData[binding.sourceColumn] || "");
+                const key = binding.table + "|" + binding.column + "|" + binding.sourceTable + "|" + binding.sourceColumn;
+                if ((state.rowClickSelections[key] || "") === value) {
+                  state.rowClickSelections[key] = "";
+                } else {
+                  state.rowClickSelections[key] = value;
+                }
+                const targetState = state.tables[binding.table];
+                if (targetState && targetState.pager.enabled) targetState.pager.currentPage = 1;
+                renderTable(binding.table);
+              });
+
+              renderTable(filterDef.sourceTable);
+            });
+            sourceState.el.dataset.csvtableRowClickBound = "true";
+          }
+        }
+        return;
+      }
+
       const selectEl = document.getElementById(filterDef.select);
       if (!selectEl) {
         console.warn("[csvtable] Select element not found:", filterDef.select);
@@ -671,12 +861,36 @@ const CSVTABLE_CONFIG = {
         selectEl.addEventListener("change", function() {
           const tables = state.selectBindings[filterDef.select] || [];
           tables.forEach(function(name) {
+            const renderState = state.tables[name];
+            if (renderState && renderState.pager.enabled) renderState.pager.currentPage = 1;
             renderTable(name);
           });
         });
         selectEl.dataset.csvtableBound = "true";
       }
     });
+
+    if (!document.body.dataset.csvtableResetBound) {
+      document.body.addEventListener("click", function(evt) {
+        const resetButton = evt.target && evt.target.closest('button[type="reset"]');
+        if (!resetButton) return;
+
+        filters.forEach(function(filterDef) {
+          if (!filterDef.select) return;
+          const selectEl = document.getElementById(filterDef.select);
+          if (!selectEl) return;
+          selectEl.value = "";
+        });
+
+        state.rowClickSelections = {};
+        Object.keys(state.tables).forEach(function(name) {
+          const tableState = state.tables[name];
+          if (tableState && tableState.pager.enabled) tableState.pager.currentPage = 1;
+          renderTable(name);
+        });
+      });
+      document.body.dataset.csvtableResetBound = "true";
+    }
   }
 
   // 11. Declarative HTML API scanner
@@ -699,7 +913,11 @@ const CSVTABLE_CONFIG = {
         groupBy: tableEl.getAttribute("data-group-by") || null,
         agg: tableEl.getAttribute("data-agg") || "",
         tfoot: tableEl.getAttribute("data-tfoot") === "true",
-        locale: tableEl.getAttribute("data-locale") || DEFAULT_LOCALE
+        locale: tableEl.getAttribute("data-locale") || DEFAULT_LOCALE,
+        pager: {
+          enabled: tableEl.getAttribute("data-pager") === "true",
+          rowsPerPage: parseInt(tableEl.getAttribute("data-rows-per-page") || "10", 10) || 10
+        }
       };
     });
 
@@ -741,6 +959,9 @@ const CSVTABLE_CONFIG = {
 
         const staticFilters = parseStaticFilters(def.staticFilters || "");
 
+        const bodyTemplateRow = tableEl.querySelector("tbody tr") ? tableEl.querySelector("tbody tr").cloneNode(true) : null;
+        const footTemplateRow = tableEl.querySelector("tfoot tr") ? tableEl.querySelector("tfoot tr").cloneNode(true) : null;
+
         state.tables[tableName] = {
           el: tableEl,
           columns: columns,
@@ -752,7 +973,17 @@ const CSVTABLE_CONFIG = {
           formatters: runtime.formatters || {},
           hooks: runtime.hooks || {},
           filters: [],
+          rowClickAsSource: [],
+          displayRows: [],
+          bodyTemplateRow: bodyTemplateRow,
+          footTemplateRow: footTemplateRow,
           sort: { columnIndex: null, direction: null },
+          pager: {
+            enabled: Boolean(def.pager && def.pager.enabled),
+            rowsPerPage: parseInt(def.pager && def.pager.rowsPerPage, 10) || 10,
+            currentPage: 1,
+            pageCount: 1
+          },
           sortTypes: Array.from(tableEl.querySelectorAll("thead th")).map(function(th) {
             const t = th.getAttribute("data-sort-type") || "text";
             return t === "number" ? "number" : "text";
@@ -775,4 +1006,4 @@ const CSVTABLE_CONFIG = {
   document.addEventListener("DOMContentLoaded", function() {
     init(CONFIG);
   });
-})(CSVTABLE_CONFIG);
+})(typeof window !== "undefined" && window.CSVTABLE_CONFIG ? window.CSVTABLE_CONFIG : CSVTABLE_CONFIG);

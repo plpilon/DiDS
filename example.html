@@ -14,6 +14,11 @@
     .sort-asc::after { content: ' ▲'; }
     .sort-desc::after { content: ' ▼'; }
     .group-row { background: #f9fafb; font-weight: 600; }
+    .row-selected { outline: 2px solid #2563eb; }
+    .pager { margin-top: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .pager-controls { display: flex; gap: 8px; align-items: center; }
+    .pager-btn { padding: 4px 10px; border: 1px solid #d1d5db; background: white; border-radius: 6px; cursor: pointer; }
+    .pager-page { font-size: 14px; }
   </style>
 </head>
 <body>
@@ -30,16 +35,19 @@
     <label>Year
       <select id="year_select"><option value="">All</option><option>2023</option><option>2024</option></select>
     </label>
+    <button type="reset">Reset filters</button>
   </p>
 
   <table data-table-name="SummaryByRegion">
     <thead><tr><th class="sortable">Region</th><th class="sortable" data-sort-type="number">m2r (fr-CA)</th></tr></thead>
-    <tbody></tbody><tfoot></tfoot>
+    <tbody><tr><td class="col-region">{SummaryByRegion:col1}</td><td class="col-m2r">{SummaryByRegion:col2}</td></tr></tbody>
+    <tfoot><tr><td class="col-region-total"></td><td class="col-m2r-total">{SummaryByRegion:col2Total}</td></tr></tfoot>
   </table>
 
-  <table data-table-name="AssetDetail">
+  <table data-table-name="AssetDetail" data-pager="true" data-rows-per-page="5">
     <thead><tr><th class="sortable">AOID</th><th>Region</th><th>Asset Name</th><th class="sortable" data-sort-type="number">m2r (en-CA)</th></tr></thead>
-    <tbody></tbody><tfoot></tfoot>
+    <tbody><tr><td class="col-aoid">{AssetDetail:col1}</td><td class="col-region">{AssetDetail:col2}</td><td class="col-asset-name">{AssetDetail:col3}</td><td class="col-m2r">{AssetDetail:col4}</td></tr></tbody>
+    <tfoot><tr><td></td><td></td><td class="col-foot-label">Total</td><td class="col-foot-value">{AssetDetail:col4Total}</td></tr></tfoot>
   </table>
 
   <script type="text/csv" id="source-data">AOID,Region,Asset,Asset Name,m2r,Year,Status
