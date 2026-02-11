@@ -89,7 +89,8 @@
         { table: "SummaryByRegion", select: "region_select", column: "Region" },
         { table: "AssetDetail", select: "region_select", column: "Region" },
         { table: "SummaryByRegion", select: "year_select", column: "Year", static: true },
-        { table: "AssetDetail", select: "year_select", column: "Year", static: true }
+        { table: "AssetDetail", select: "year_select", column: "Year", static: true },
+        "AssetDetail.Region -> SummaryByRegion.Region"
       ]
     };
   </script>

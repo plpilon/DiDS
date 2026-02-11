@@ -28,8 +28,14 @@ const CSVTABLE_CONFIG = {
     tables: {},
     selectBindings: {},
     tableSummaries: {},
-    rowClickSelections: {}
+    rowClickSelections: {},
+    rowClickActiveRows: {}
   };
+
+
+  function getRowClickKey(binding) {
+    return binding.table + "|" + binding.column + "|" + binding.sourceTable + "|" + binding.sourceColumn;
+  }
 
   // 1. CSV Parser
   function parseCsvLine(line) {
@@ -275,6 +281,33 @@ const CSVTABLE_CONFIG = {
       }
       return true;
     });
+  }
+
+  function syncSourceRowSelectionClass(tableState, tbodyEl) {
+    if (!tableState || !tbodyEl) return;
+
+    tbodyEl.querySelectorAll("tr.row-selected").forEach(function(rowEl) {
+      rowEl.classList.remove("row-selected");
+    });
+
+    const bindings = tableState.rowClickAsSource || [];
+    if (!bindings.length) return;
+
+    let activeRowIndex = "";
+    for (let i = 0; i < bindings.length; i += 1) {
+      const key = getRowClickKey(bindings[i]);
+      if (state.rowClickActiveRows[key]) {
+        activeRowIndex = state.rowClickActiveRows[key];
+        break;
+      }
+    }
+
+    if (!activeRowIndex) return;
+
+    const rowEl = tbodyEl.querySelector('tr[data-row-index="' + activeRowIndex + '"]');
+    if (rowEl && !rowEl.classList.contains("no-data-row")) {
+      rowEl.classList.add("row-selected");
+    }
   }
 
   function getPagedRows(tableState, sortedRows) {
@@ -668,18 +701,12 @@ const CSVTABLE_CONFIG = {
           tr.setAttribute("data-row-index", String(rowIndex));
           if (row._isGroup) tr.classList.add("group-row");
 
-          const hasRowClick = (tableState.rowClickAsSource || []).some(function(binding) {
-            const key = binding.table + "|" + binding.column + "|" + binding.sourceTable + "|" + binding.sourceColumn;
-            const selected = state.rowClickSelections[key] || "";
-            return selected !== "" && String(row._source[binding.sourceColumn] || row[binding.sourceColumn] || "") === selected;
-          });
-          if (hasRowClick) tr.classList.add("row-selected");
-
           frag.appendChild(tr);
         });
       }
 
       parts.tbody.appendChild(frag);
+      syncSourceRowSelectionClass(tableState, parts.tbody);
       renderPager(tableName, sorted.length);
 
       if (tableState.tfoot) {
@@ -778,8 +805,64 @@ const CSVTABLE_CONFIG = {
   }
 
   // 10. Event Wiring
+  function parseFilterCommand(commandValue) {
+    const command = String(commandValue || "").trim();
+    if (!command) return null;
+
+    const match = command.match(/^(?:rowclick\s*:\s*)?([\w-]+)\.([^\s.]+)\s*(->|<-)\s*([\w-]+)\.([^\s.]+)$/i);
+    if (!match) return null;
+
+    const leftTable = match[1];
+    const leftColumn = match[2];
+    const arrow = match[3];
+    const rightTable = match[4];
+    const rightColumn = match[5];
+
+    if (arrow === "->") {
+      return {
+        table: rightTable,
+        column: rightColumn,
+        sourceTable: leftTable,
+        sourceColumn: leftColumn,
+        trigger: "rowClick"
+      };
+    }
+
+    return {
+      table: leftTable,
+      column: leftColumn,
+      sourceTable: rightTable,
+      sourceColumn: rightColumn,
+      trigger: "rowClick"
+    };
+  }
+
+  function normalizeFilterDef(filterDef) {
+    if (typeof filterDef === "string") {
+      const parsed = parseFilterCommand(filterDef);
+      if (!parsed) {
+        console.warn("[csvtable] Invalid filter command:", filterDef);
+        return null;
+      }
+      return parsed;
+    }
+
+    if (!filterDef || typeof filterDef !== "object") return null;
+
+    if (typeof filterDef.command === "string" && filterDef.command.trim()) {
+      const parsedCommand = parseFilterCommand(filterDef.command);
+      if (!parsedCommand) {
+        console.warn("[csvtable] Invalid filter command:", filterDef.command);
+        return null;
+      }
+      return Object.assign({}, filterDef, parsedCommand);
+    }
+
+    return filterDef;
+  }
+
   function setupFilters(runtimeConfig) {
-    const filters = runtimeConfig.filters || [];
+    const filters = (runtimeConfig.filters || []).map(normalizeFilterDef).filter(Boolean);
     filters.forEach(function(filterDef) {
       const tState = state.tables[filterDef.table];
       if (!tState) return;
@@ -808,18 +891,21 @@ const CSVTABLE_CONFIG = {
 
               (sourceState.rowClickAsSource || []).forEach(function(binding) {
                 const value = String(rowData._source[binding.sourceColumn] || rowData[binding.sourceColumn] || "");
-                const key = binding.table + "|" + binding.column + "|" + binding.sourceTable + "|" + binding.sourceColumn;
-                if ((state.rowClickSelections[key] || "") === value) {
+                const key = getRowClickKey(binding);
+                const activeRowIndex = String(idx);
+                if ((state.rowClickActiveRows[key] || "") === activeRowIndex) {
                   state.rowClickSelections[key] = "";
+                  state.rowClickActiveRows[key] = "";
                 } else {
                   state.rowClickSelections[key] = value;
+                  state.rowClickActiveRows[key] = activeRowIndex;
                 }
                 const targetState = state.tables[binding.table];
                 if (targetState && targetState.pager.enabled) targetState.pager.currentPage = 1;
                 renderTable(binding.table);
               });
 
-              renderTable(filterDef.sourceTable);
+              syncSourceRowSelectionClass(sourceState, tbody);
             });
             sourceState.el.dataset.csvtableRowClickBound = "true";
           }
@@ -891,6 +977,7 @@ const CSVTABLE_CONFIG = {
         });
 
         state.rowClickSelections = {};
+        state.rowClickActiveRows = {};
         Object.keys(state.tables).forEach(function(name) {
           const tableState = state.tables[name];
           if (tableState && tableState.pager.enabled) tableState.pager.currentPage = 1;
