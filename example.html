@@ -64,6 +64,35 @@
 1011,Quebec,BLD-K,Metro Point,19,2024,1
 1012,British Columbia,BLD-L,West Block,20,2023,1
 </script>
+  <script>
+    window.CSVTABLE_CONFIG = {
+      source: "#source-data",
+      tables: {
+        SummaryByRegion: {
+          columns: "col1: Region [type:text]; col2: m2r [type:number; decimals:0; locale:fr-CA; showColTotal:true]",
+          groupBy: "Region",
+          agg: "m2r: sum",
+          tfoot: true,
+          locale: "fr-CA"
+        },
+        AssetDetail: {
+          columns: "col1: AOID [type:text]; col2: Region [type:text]; col3: Asset Name [type:text]; col4: m2r [type:number; decimals:2; locale:en-CA; showColTotal:true]",
+          tfoot: true,
+          locale: "en-CA",
+          pager: {
+            enabled: true,
+            rowsPerPage: 5
+          }
+        }
+      },
+      filters: [
+        { table: "SummaryByRegion", select: "region_select", column: "Region" },
+        { table: "AssetDetail", select: "region_select", column: "Region" },
+        { table: "SummaryByRegion", select: "year_select", column: "Year", static: true },
+        { table: "AssetDetail", select: "year_select", column: "Year", static: true }
+      ]
+    };
+  </script>
   <script src="csvtable.js"></script>
 </body>
 </html>
