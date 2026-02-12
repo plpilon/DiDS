@@ -426,3 +426,30 @@ Behavior:
 - `download-TableName` exports the currently rendered table rows for that table
 - export uses the current table state, so active filters, grouping, sorting, and paging are reflected
 - if no rows are available, export is skipped with a console warning
+
+## 18) Table interactivity and filter controls config
+
+This section summarizes where table interactivity and filter button behavior are configured.
+
+### Table interactivity
+
+- Sorting is enabled by adding `class="sortable"` to `<th>` and optional `data-sort-type="number"`.
+- Paging is enabled per table with `pager: { enabled: true, rowsPerPage: 5 }` or declarative `data-pager="true"` and `data-rows-per-page="5"`.
+- Row click interactivity is enabled through a row-click filter binding:
+
+```js
+{
+  table: "SummaryByRegion",
+  sourceTable: "AssetDetail",
+  sourceColumn: "Region",
+  column: "Region",
+  trigger: "rowClick"
+}
+```
+
+### Filter controls
+
+- Dynamic select filters are configured in `filters` with `{ table, select, column }`.
+- Static select options are preserved with `{ static: true }`.
+- Global reset uses any `<button type="reset">` and clears select filters, row-click filters, and pager state.
+- CSV export uses buttons with `type="download-source"` and `type="download-TableName"`.
