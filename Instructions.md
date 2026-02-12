@@ -453,6 +453,7 @@ This section summarizes where table interactivity and filter button behavior are
 - Static select options are preserved with `{ static: true }`.
 - Global reset uses any `<button type="reset">` and clears select filters, row-click filters, and pager state.
 - CSV export uses buttons with `type="download-source"` and `type="download-TableName"`.
+<<<<<<< codex/update-readme.md-and-instructions.md-7k3rkm
 
 ## 19) Source metrics and operations for KPI cards
 
@@ -487,3 +488,5 @@ Notes:
 - division by zero resolves to `0`
 - these values are also passed to hooks as `sourceMetrics` and `sourceMetricOps`
 
+=======
+>>>>>>> main
