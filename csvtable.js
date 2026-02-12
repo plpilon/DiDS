@@ -329,7 +329,7 @@ const CSVTABLE_CONFIG = {
           if (selected === "" || selected === "All") continue;
           if ((rowObj._source[b.column] || "") !== selected) return false;
         } else if (b.trigger === "rowClick") {
-          const key = b.table + "|" + b.column + "|" + b.sourceTable + "|" + b.sourceColumn;
+          const key = getRowClickKey(b);
           const selected = state.rowClickSelections[key] || "";
           if (selected === "") continue;
           if ((rowObj._source[b.column] || "") !== selected) return false;
@@ -349,18 +349,18 @@ const CSVTABLE_CONFIG = {
     const bindings = tableState.rowClickAsSource || [];
     if (!bindings.length) return;
 
-    let activeRowIndex = "";
+    let activeRowId = "";
     for (let i = 0; i < bindings.length; i += 1) {
       const key = getRowClickKey(bindings[i]);
       if (state.rowClickActiveRows[key]) {
-        activeRowIndex = state.rowClickActiveRows[key];
+        activeRowId = state.rowClickActiveRows[key];
         break;
       }
     }
 
-    if (!activeRowIndex) return;
+    if (!activeRowId) return;
 
-    const rowEl = tbodyEl.querySelector('tr[data-row-index="' + activeRowIndex + '"]');
+    const rowEl = tbodyEl.querySelector('tr[data-row-id="' + activeRowId + '"]');
     if (rowEl && !rowEl.classList.contains("no-data-row")) {
       rowEl.classList.add("row-selected");
     }
@@ -671,8 +671,8 @@ const CSVTABLE_CONFIG = {
   function mapRows(tableState) {
     const mapped = [];
 
-    state.source.rows.forEach(function(sourceRow) {
-      const obj = { _source: {} };
+    state.source.rows.forEach(function(sourceRow, sourceIndex) {
+      const obj = { _source: {}, _rowId: String(sourceIndex) };
 
       tableState.columns.forEach(function(col) {
         const idx = state.headersIndex[col.sourceHeader];
@@ -724,6 +724,7 @@ const CSVTABLE_CONFIG = {
         const tr = document.createElement("tr");
         tr.className = "no-data-row";
         tr.setAttribute("data-row-index", "0");
+        tr.setAttribute("data-row-id", "");
         const td = document.createElement("td");
         td.colSpan = tableState.columns.length;
         td.textContent = "No data";
@@ -755,6 +756,7 @@ const CSVTABLE_CONFIG = {
           }
 
           tr.setAttribute("data-row-index", String(rowIndex));
+          tr.setAttribute("data-row-id", row._rowId || "");
           if (row._isGroup) tr.classList.add("group-row");
 
           frag.appendChild(tr);
@@ -948,13 +950,14 @@ const CSVTABLE_CONFIG = {
               (sourceState.rowClickAsSource || []).forEach(function(binding) {
                 const value = String(rowData._source[binding.sourceColumn] || rowData[binding.sourceColumn] || "");
                 const key = getRowClickKey(binding);
-                const activeRowIndex = String(idx);
-                if ((state.rowClickActiveRows[key] || "") === activeRowIndex) {
+                const activeRowId = String(rowData._rowId || "");
+                if (!activeRowId) return;
+                if ((state.rowClickActiveRows[key] || "") === activeRowId) {
                   state.rowClickSelections[key] = "";
                   state.rowClickActiveRows[key] = "";
                 } else {
                   state.rowClickSelections[key] = value;
-                  state.rowClickActiveRows[key] = activeRowIndex;
+                  state.rowClickActiveRows[key] = activeRowId;
                 }
                 const targetState = state.tables[binding.table];
                 if (targetState && targetState.pager.enabled) targetState.pager.currentPage = 1;
