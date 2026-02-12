@@ -97,6 +97,62 @@ const CSVTABLE_CONFIG = {
     return { headers: headers, rows: rows };
   }
 
+  function toCsvCell(value) {
+    const normalized = value == null ? "" : String(value);
+    if (/[,"\n\r]/.test(normalized)) {
+      return '"' + normalized.replace(/"/g, '""') + '"';
+    }
+    return normalized;
+  }
+
+  function downloadCsv(filename, rows) {
+    if (!rows || !rows.length) {
+      console.warn("[csvtable] No data available for CSV download:", filename);
+      return;
+    }
+
+    const csvText = rows.map(function(row) {
+      return row.map(toCsvCell).join(",");
+    }).join("\n");
+
+    const blob = new Blob([csvText], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const blobUrl = URL.createObjectURL(blob);
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(blobUrl);
+  }
+
+  function getRenderedTableCsvRows(tableName) {
+    const tableState = state.tables[tableName];
+    if (!tableState || !tableState.el) {
+      console.warn("[csvtable] Table not found for CSV download:", tableName);
+      return [];
+    }
+
+    const rows = [];
+    const headerCells = Array.from(tableState.el.querySelectorAll("thead th"));
+    if (headerCells.length) {
+      rows.push(headerCells.map(function(th) { return (th.textContent || "").trim(); }));
+    } else {
+      rows.push(tableState.columns.map(function(col) { return col.key; }));
+    }
+
+    const bodyRows = Array.from(tableState.el.querySelectorAll("tbody tr"));
+    bodyRows.forEach(function(tr) {
+      if (tr.classList.contains("no-data-row")) return;
+      const values = Array.from(tr.querySelectorAll("td")).map(function(td) {
+        return (td.textContent || "").trim();
+      });
+      rows.push(values);
+    });
+
+    return rows;
+  }
+
   // 2. Config Parsers
   function splitOutsideBrackets(value) {
     const input = String(value || "");
@@ -985,6 +1041,28 @@ const CSVTABLE_CONFIG = {
         });
       });
       document.body.dataset.csvtableResetBound = "true";
+    }
+
+    if (!document.body.dataset.csvtableDownloadBound) {
+      document.body.addEventListener("click", function(evt) {
+        const downloadButton = evt.target && evt.target.closest('button[type^="download-"]');
+        if (!downloadButton) return;
+
+        const typeValue = String(downloadButton.getAttribute("type") || "").trim();
+        if (typeValue === "download-source") {
+          const sourceRows = [];
+          if (state.source.headers.length) sourceRows.push(state.source.headers.slice());
+          state.source.rows.forEach(function(row) { sourceRows.push(row.slice()); });
+          downloadCsv("source.csv", sourceRows);
+          return;
+        }
+
+        const tableName = typeValue.slice("download-".length);
+        if (!tableName) return;
+        const tableRows = getRenderedTableCsvRows(tableName);
+        downloadCsv(tableName + ".csv", tableRows);
+      });
+      document.body.dataset.csvtableDownloadBound = "true";
     }
   }
 
