@@ -105,6 +105,7 @@ window.CSVTABLE_CONFIG = {
   }
 };
 ```
+
 ## Validation
 
 - Syntax check:
