@@ -12,6 +12,9 @@
 
 <span id="tag-total">{SummaryByRegion:col2Total}</span>
 <span id="tag-missing">{NonExistentTable:col1}</span>
+<span id="source-unique-aoid">{source:totalUniqueAOID}</span>
+<span id="source-sum-m2r">{source:sourceM2RSum}</span>
+<span id="source-op-ratio">{source:m2rPerAoid}</span>
 
 <table data-table-name="SummaryByRegion">
   <thead><tr><th class="sortable">Region</th><th class="sortable" data-sort-type="number">m2r</th></tr></thead>
@@ -48,6 +51,13 @@ window.CSVTABLE_CONFIG = {
       tfoot: true,
       locale: 'en-CA'
     }
+  },
+  sourceMetrics: {
+    totalUniqueAOID: { column: 'AOID', agg: 'nunique' },
+    sourceM2RSum: { column: 'm2r', agg: 'sum' }
+  },
+  sourceMetricOps: {
+    m2rPerAoid: { op: 'divide', left: 'sourceM2RSum', right: 'totalUniqueAOID', decimals: 1 }
   },
   filters: [
     { table: 'SummaryByRegion', select: 'region_select', column: 'Region' },
@@ -93,6 +103,8 @@ window.addEventListener('load', function(){
   log('Test 7: Locale formatting', qRow && qRow.children[1].textContent.includes(','));
   log('Test 8: Template tags', q('#tag-total').textContent.trim()!=='');
   log('Test 9: Missing tag graceful degradation', q('#tag-missing').textContent==='');
+  log('Test 9b: Source metrics tags', q('#source-unique-aoid').textContent.trim()==='5' && q('#source-sum-m2r').textContent.trim()==='77');
+  log('Test 9c: Source metric ops tags', q('#source-op-ratio').textContent.trim()==='15.4');
   log('Test 10: Multiple tables', qa('table[data-table-name="SummaryByRegion"] tbody tr').length>0 && qa('table[data-table-name="AssetDetail"] tbody tr').length>0);
   log('Test 11: tfoot totals', qa('table[data-table-name="SummaryByRegion"] tfoot td').length>0);
 

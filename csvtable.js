@@ -10,6 +10,8 @@ const CSVTABLE_CONFIG = {
   source: "#source-data",
   tables: {},
   filters: [],
+  sourceMetrics: {},
+  sourceMetricOps: {},
   hooks: {},
   formatters: {}
 };
@@ -28,6 +30,8 @@ const CSVTABLE_CONFIG = {
     tables: {},
     selectBindings: {},
     tableSummaries: {},
+    sourceMetrics: {},
+    sourceMetricOps: {},
     rowClickSelections: {},
     rowClickActiveRows: {}
   };
@@ -35,6 +39,53 @@ const CSVTABLE_CONFIG = {
 
   function getRowClickKey(binding) {
     return binding.table + "|" + binding.column + "|" + binding.sourceTable + "|" + binding.sourceColumn;
+  }
+
+
+  function getSourceColumnValues(column) {
+    const idx = state.headersIndex[column];
+    if (idx === undefined) return [];
+    return state.source.rows.map(function(row) { return row[idx] || ""; });
+  }
+
+  function computeSourceMetrics(defs) {
+    const out = {};
+    const metrics = defs || {};
+    Object.keys(metrics).forEach(function(metricName) {
+      const def = metrics[metricName] || {};
+      const column = def.column;
+      const aggName = String(def.agg || "count").toLowerCase();
+      if (!column) return;
+      const values = getSourceColumnValues(column);
+      const fn = AGG_FUNCS[aggName] || AGG_FUNCS.count;
+      out[metricName] = fn(values);
+    });
+    return out;
+  }
+
+  function computeSourceMetricOps(defs, metrics) {
+    const out = {};
+    const ops = defs || {};
+    Object.keys(ops).forEach(function(opName) {
+      const def = ops[opName] || {};
+      const op = String(def.op || "").toLowerCase();
+      const left = Number(metrics[def.left] || 0);
+      const right = Number(metrics[def.right] || 0);
+      let value = 0;
+      if (op === "divide") value = right === 0 ? 0 : left / right;
+      else if (op === "multiply") value = left * right;
+      else if (op === "add") value = left + right;
+      else if (op === "subtract") value = left - right;
+      if (!isFinite(value)) value = 0;
+      if (typeof def.multiplyBy === "number") value = value * def.multiplyBy;
+      if (typeof def.decimals === "number" && isFinite(def.decimals)) {
+        const d = Math.max(0, parseInt(def.decimals, 10) || 0);
+        const factor = Math.pow(10, d);
+        value = Math.round(value * factor) / factor;
+      }
+      out[opName] = value;
+    });
+    return out;
   }
 
   // 1. CSV Parser
@@ -650,6 +701,11 @@ const CSVTABLE_CONFIG = {
       }
       pattern.lastIndex = 0;
       node.nodeValue = text.replace(pattern, function(_, refTable, key) {
+        if (refTable === "source") {
+          if (state.sourceMetrics[key] != null) return String(state.sourceMetrics[key]);
+          if (state.sourceMetricOps[key] != null) return String(state.sourceMetricOps[key]);
+          return "";
+        }
         if (refTable !== tableName) return "";
         if (key === "RowTotal") {
           return String(context.rowTotal || 0);
@@ -710,7 +766,7 @@ const CSVTABLE_CONFIG = {
       const dynamicFiltered = applyDynamicFilters(tableState, staticFiltered);
 
       if (tableState.hooks.onFilter) {
-        tableState.hooks.onFilter({ tableName: tableName, filters: tableState.filters || [], matchCount: dynamicFiltered.length });
+        tableState.hooks.onFilter({ tableName: tableName, filters: tableState.filters || [], matchCount: dynamicFiltered.length, sourceMetrics: state.sourceMetrics, sourceMetricOps: state.sourceMetricOps });
       }
 
       const grouped = groupAndAggregate(tableState, dynamicFiltered);
@@ -809,7 +865,7 @@ const CSVTABLE_CONFIG = {
       resolveTemplateTags();
 
       if (tableState.hooks.onRender) {
-        tableState.hooks.onRender({ tableName: tableName, rowCount: sorted.length, data: sorted });
+        tableState.hooks.onRender({ tableName: tableName, rowCount: sorted.length, data: sorted, sourceMetrics: state.sourceMetrics, sourceMetricOps: state.sourceMetricOps });
       }
     } catch (err) {
       console.error("[csvtable] Render failed for table:", tableName, err);
@@ -831,6 +887,11 @@ const CSVTABLE_CONFIG = {
       nodes.forEach(function(node) {
         const text = node.nodeValue || "";
         const replaced = text.replace(pattern, function(_, tableName, key) {
+          if (tableName === "source") {
+            if (state.sourceMetrics[key] != null) return String(state.sourceMetrics[key]);
+            if (state.sourceMetricOps[key] != null) return String(state.sourceMetricOps[key]);
+            return "";
+          }
           const summary = state.tableSummaries[tableName];
           if (!summary) return "";
 
@@ -1075,6 +1136,8 @@ const CSVTABLE_CONFIG = {
       source: baseConfig.source,
       tables: Object.assign({}, baseConfig.tables || {}),
       filters: (baseConfig.filters || []).slice(),
+      sourceMetrics: baseConfig.sourceMetrics || {},
+      sourceMetricOps: baseConfig.sourceMetricOps || {},
       hooks: baseConfig.hooks || {},
       formatters: baseConfig.formatters || {}
     };
@@ -1117,6 +1180,9 @@ const CSVTABLE_CONFIG = {
       const runtime = mergeDeclarativeConfig(config || {});
       const sourceOk = await loadSource(runtime.source);
       if (!sourceOk) return;
+
+      state.sourceMetrics = computeSourceMetrics(runtime.sourceMetrics);
+      state.sourceMetricOps = computeSourceMetricOps(runtime.sourceMetricOps, state.sourceMetrics);
 
       Object.keys(runtime.tables || {}).forEach(function(tableName) {
         const def = runtime.tables[tableName] || {};
