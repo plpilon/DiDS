@@ -11,6 +11,7 @@
 - Supports static and dynamic filters
 - Supports optional table-level paging with stylable `.pager-*` classes
 - Supports row-click filters across tables (for example click in detail table to filter summary table)
+- Supports CSV export buttons for source data and per-table rendered data
 - Supports reset of all active filters from any `<button type="reset">`
 - Supports template-driven `<tbody>` and `<tfoot>` rows so you can style each cell with your own classes
 - Supports config override from `window.CSVTABLE_CONFIG` in host HTML
@@ -66,6 +67,20 @@ AOID,Region,Asset Name,m2r
 
 The library auto initializes on `DOMContentLoaded`.
 
+## CSV downloads
+
+You can add export buttons with a `type` attribute:
+
+- `<button type="download-source">` exports the parsed source dataset
+- `<button type="download-TableName">` exports the currently rendered rows for that table (after filtering, grouping, sorting, and paging)
+
+Example:
+
+```html
+<button type="download-source">Download source CSV</button>
+<button type="download-AssetDetail">Download AssetDetail CSV</button>
+```
+
 ## Validation
 
 - Syntax check:
@@ -75,4 +90,3 @@ node --check csvtable.js
 ```
 
 - Open `test.html` in a browser and verify all checks show PASS.
-
