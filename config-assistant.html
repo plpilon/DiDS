@@ -230,7 +230,7 @@
     var tablesText = state.tables.filter(function(t){ return t.name; }).map(function(t){
       var aggPairs = t.columns.filter(function(c){ return c.agg; }).map(function(c){ return c.sourceHeader + ': ' + c.agg; }).join('; ');
       return '    ' + t.name + ': {\n'
-        + '      columns: "' + columnsString(t).replace(/"/g, '\\"') + '",\n'
+        + '      columns: "' + columnsString(t.columns).replace(/"/g, '\\"') + '",\n'
         + '      tfoot: ' + !!t.tfoot + ',\n'
         + '      locale: "' + (t.locale || 'en-CA') + '"'
         + (t.groupBy ? ',\n      groupBy: "' + t.groupBy + '"' : '')
