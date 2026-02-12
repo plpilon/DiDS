@@ -21,21 +21,24 @@
     button { background:#fff; cursor:pointer; }
     button.primary { background: var(--accent); color:#fff; border-color: var(--accent); }
     button.danger { background:#fee2e2; border-color:#fca5a5; }
-    .table-card,.filter-row,.metric-row,.op-row { border:1px dashed #c8cfeb; border-radius:8px; padding:10px; margin-top:8px; }
+    .table-card { border:1px dashed #c8cfeb; border-radius:8px; padding:10px; margin-top:8px; }
     .pill { display:inline-block; background:#eef2ff; border:1px solid #c7d2fe; color:#3730a3; border-radius:20px; padding:2px 10px; font-size:12px; margin:3px 5px 0 0; }
     pre { background:#0b1020; color:#d1f7ff; padding:12px; border-radius:8px; overflow:auto; max-height:420px; }
+    .col-row,.metric-row,.op-row,.filter-row { border:1px solid #eceff7; border-radius:8px; padding:8px; margin-bottom:6px; }
   </style>
 </head>
 <body>
 <div class="wrap">
   <h1>csvtable Rules Based Config Assistant</h1>
-  <p class="muted">Paste CSV headers, define tables, filters, source metrics, and operations. Then copy generated config, hooks, and wiring snippets.</p>
+  <p class="muted">Paste CSV headers, define tables, columns, filters, source metrics, and metric operations. Then copy generated config, hooks, and HTML wiring snippets.</p>
 
   <section class="card">
     <h2>1) Source</h2>
-    <label>CSV headers (comma or newline separated)
-      <textarea id="headersInput" placeholder="AOID,Region,Asset Name,m2r,Year"></textarea>
-    </label>
+    <div class="row">
+      <label style="flex:1 1 560px;">CSV headers (comma or newline separated)
+        <textarea id="headersInput" placeholder="AOID,Region,Asset Name,m2r,Year"></textarea>
+      </label>
+    </div>
     <div class="row">
       <label>Source selector or file path <input id="sourceInput" value="#source-data" /></label>
       <button id="parseBtn" class="primary" type="button">Parse headers</button>
@@ -67,7 +70,9 @@
 
   <section class="card">
     <h2>5) Generate output</h2>
-    <button id="generateBtn" class="primary" type="button">Generate config and snippets</button>
+    <div class="row">
+      <button id="generateBtn" class="primary" type="button">Generate config and snippets</button>
+    </div>
     <h3>window.CSVTABLE_CONFIG</h3>
     <pre id="configOut"></pre>
     <h3>Hooks reference block</h3>
@@ -77,298 +82,6 @@
   </section>
 </div>
 
-<script>
-(function(){
-  var state = { headers: [], tables: [], filters: [], metrics: [], ops: [] };
-  var doc = document;
-  var byId = function(id){ return doc.getElementById(id); };
-
-  function esc(value) { return String(value == null ? "" : value).replace(/"/g, '&quot;'); }
-  function parseHeaders(raw) {
-    var seen = {};
-    state.headers = String(raw || "").split(/[\n,]+/).map(function(s){ return s.trim(); }).filter(Boolean).filter(function(h){
-      if (seen[h]) return false;
-      seen[h] = true;
-      return true;
-    });
-  }
-  function optionsFromHeaders(selected) {
-    var html = '<option value=""></option>';
-    state.headers.forEach(function(h){ html += '<option value="'+esc(h)+'"'+(h===selected?' selected':'')+'>'+h+'</option>'; });
-    return html;
-  }
-  function optionsFromTables(selected) {
-    var html = '<option value=""></option>';
-    state.tables.forEach(function(t){ html += '<option value="'+esc(t.name)+'"'+(t.name===selected?' selected':'')+'>'+t.name+'</option>'; });
-    return html;
-  }
-  function optionsFromMetricKeys(selected) {
-    var html = '<option value=""></option>';
-    state.metrics.forEach(function(m){ html += '<option value="'+esc(m.key)+'"'+(m.key===selected?' selected':'')+'>'+m.key+'</option>'; });
-    return html;
-  }
-
-  function renderHeaderPills() {
-    var el = byId('headerPills');
-    el.innerHTML = '';
-    state.headers.forEach(function(h){
-      var span = doc.createElement('span');
-      span.className = 'pill';
-      span.textContent = h;
-      el.appendChild(span);
-    });
-  }
-
-  function renderTables() {
-    var root = byId('tables');
-    root.innerHTML = '';
-    state.tables.forEach(function(table, tIndex){
-      var columnsHtml = table.columns.map(function(col, cIndex){
-        return '<div class="row">'
-          + '<label>Key<input data-scope="col" data-ti="'+tIndex+'" data-ci="'+cIndex+'" data-k="key" value="'+esc(col.key)+'"></label>'
-          + '<label>Source column<select data-scope="col" data-ti="'+tIndex+'" data-ci="'+cIndex+'" data-k="sourceHeader">'+optionsFromHeaders(col.sourceHeader)+'</select></label>'
-          + '<label>Type<select data-scope="col" data-ti="'+tIndex+'" data-ci="'+cIndex+'" data-k="type"><option value="text"'+(col.type==='text'?' selected':'')+'>text</option><option value="number"'+(col.type==='number'?' selected':'')+'>number</option></select></label>'
-          + '<label>Decimals<input type="number" min="0" data-scope="col" data-ti="'+tIndex+'" data-ci="'+cIndex+'" data-k="decimals" value="'+esc(col.decimals)+'"></label>'
-          + '<label>Agg<select data-scope="col" data-ti="'+tIndex+'" data-ci="'+cIndex+'" data-k="agg"><option value=""></option><option value="sum"'+(col.agg==='sum'?' selected':'')+'>sum</option><option value="count"'+(col.agg==='count'?' selected':'')+'>count</option><option value="mean"'+(col.agg==='mean'?' selected':'')+'>mean</option><option value="min"'+(col.agg==='min'?' selected':'')+'>min</option><option value="max"'+(col.agg==='max'?' selected':'')+'>max</option><option value="nunique"'+(col.agg==='nunique'?' selected':'')+'>nunique</option></select></label>'
-          + '<label><input type="checkbox" data-scope="col" data-ti="'+tIndex+'" data-ci="'+cIndex+'" data-k="showColTotal"'+(col.showColTotal?' checked':'')+'> showColTotal</label>'
-          + '<label><input type="checkbox" data-scope="col" data-ti="'+tIndex+'" data-ci="'+cIndex+'" data-k="showRowTotal"'+(col.showRowTotal?' checked':'')+'> showRowTotal</label>'
-          + '<button type="button" class="danger" data-act="del-col" data-ti="'+tIndex+'" data-ci="'+cIndex+'">Remove col</button>'
-          + '</div>';
-      }).join('');
-
-      var card = doc.createElement('div');
-      card.className = 'table-card';
-      card.innerHTML = '<div class="row">'
-        + '<label>Table name<input data-scope="table" data-ti="'+tIndex+'" data-k="name" value="'+esc(table.name)+'"></label>'
-        + '<label>Group by<select data-scope="table" data-ti="'+tIndex+'" data-k="groupBy">'+optionsFromHeaders(table.groupBy)+'</select></label>'
-        + '<label>Locale<input data-scope="table" data-ti="'+tIndex+'" data-k="locale" value="'+esc(table.locale)+'"></label>'
-        + '<label><input type="checkbox" data-scope="table" data-ti="'+tIndex+'" data-k="tfoot"'+(table.tfoot?' checked':'')+'> tfoot</label>'
-        + '<label><input type="checkbox" data-scope="table" data-ti="'+tIndex+'" data-k="pager"'+(table.pager?' checked':'')+'> pager</label>'
-        + '<label>Rows/page<input type="number" min="1" data-scope="table" data-ti="'+tIndex+'" data-k="rowsPerPage" value="'+esc(table.rowsPerPage)+'"></label>'
-        + '<button type="button" data-act="add-col" data-ti="'+tIndex+'">Add column</button>'
-        + '<button type="button" class="danger" data-act="del-table" data-ti="'+tIndex+'">Remove table</button>'
-        + '</div>' + columnsHtml;
-      root.appendChild(card);
-    });
-  }
-
-  function renderFilters() {
-    var root = byId('filters');
-    root.innerHTML = '';
-    state.filters.forEach(function(f, i){
-      var row = doc.createElement('div');
-      row.className = 'filter-row';
-      row.innerHTML = '<div class="row">'
-        + '<label>Target table<select data-scope="filter" data-i="'+i+'" data-k="table">'+optionsFromTables(f.table)+'</select></label>'
-        + '<label>Select id<input data-scope="filter" data-i="'+i+'" data-k="select" value="'+esc(f.select)+'"></label>'
-        + '<label>Target column<select data-scope="filter" data-i="'+i+'" data-k="column">'+optionsFromHeaders(f.column)+'</select></label>'
-        + '<label><input type="checkbox" data-scope="filter" data-i="'+i+'" data-k="static"'+(f.static?' checked':'')+'> static options</label>'
-        + '<label>Trigger<select data-scope="filter" data-i="'+i+'" data-k="trigger"><option value="">select</option><option value="rowClick"'+(f.trigger==='rowClick'?' selected':'')+'>rowClick</option></select></label>'
-        + '<label>Source table<select data-scope="filter" data-i="'+i+'" data-k="sourceTable">'+optionsFromTables(f.sourceTable)+'</select></label>'
-        + '<label>Source column<select data-scope="filter" data-i="'+i+'" data-k="sourceColumn">'+optionsFromHeaders(f.sourceColumn)+'</select></label>'
-        + '<button type="button" class="danger" data-act="del-filter" data-i="'+i+'">Remove</button>'
-        + '</div>';
-      root.appendChild(row);
-    });
-  }
-
-  function renderMetrics() {
-    var root = byId('metrics');
-    root.innerHTML = '';
-    state.metrics.forEach(function(m, i){
-      var row = doc.createElement('div');
-      row.className = 'metric-row';
-      row.innerHTML = '<div class="row">'
-        + '<label>Metric key<input data-scope="metric" data-i="'+i+'" data-k="key" value="'+esc(m.key)+'"></label>'
-        + '<label>Column<select data-scope="metric" data-i="'+i+'" data-k="column">'+optionsFromHeaders(m.column)+'</select></label>'
-        + '<label>Agg<select data-scope="metric" data-i="'+i+'" data-k="agg"><option value="count"'+(m.agg==='count'?' selected':'')+'>count</option><option value="sum"'+(m.agg==='sum'?' selected':'')+'>sum</option><option value="nunique"'+(m.agg==='nunique'?' selected':'')+'>nunique</option><option value="mean"'+(m.agg==='mean'?' selected':'')+'>mean</option><option value="min"'+(m.agg==='min'?' selected':'')+'>min</option><option value="max"'+(m.agg==='max'?' selected':'')+'>max</option></select></label>'
-        + '<button type="button" class="danger" data-act="del-metric" data-i="'+i+'">Remove</button>'
-        + '</div>';
-      root.appendChild(row);
-    });
-  }
-
-  function renderOps() {
-    var root = byId('ops');
-    root.innerHTML = '';
-    state.ops.forEach(function(op, i){
-      var row = doc.createElement('div');
-      row.className = 'op-row';
-      row.innerHTML = '<div class="row">'
-        + '<label>Op key<input data-scope="op" data-i="'+i+'" data-k="key" value="'+esc(op.key)+'"></label>'
-        + '<label>Operation<select data-scope="op" data-i="'+i+'" data-k="op"><option value="divide"'+(op.op==='divide'?' selected':'')+'>divide</option><option value="multiply"'+(op.op==='multiply'?' selected':'')+'>multiply</option><option value="add"'+(op.op==='add'?' selected':'')+'>add</option><option value="subtract"'+(op.op==='subtract'?' selected':'')+'>subtract</option></select></label>'
-        + '<label>Left metric<select data-scope="op" data-i="'+i+'" data-k="left">'+optionsFromMetricKeys(op.left)+'</select></label>'
-        + '<label>Right metric<select data-scope="op" data-i="'+i+'" data-k="right">'+optionsFromMetricKeys(op.right)+'</select></label>'
-        + '<label>Decimals<input type="number" min="0" data-scope="op" data-i="'+i+'" data-k="decimals" value="'+esc(op.decimals)+'"></label>'
-        + '<label>Multiply by<input type="number" step="any" data-scope="op" data-i="'+i+'" data-k="multiplyBy" value="'+esc(op.multiplyBy)+'"></label>'
-        + '<button type="button" class="danger" data-act="del-op" data-i="'+i+'">Remove</button>'
-        + '</div>';
-      root.appendChild(row);
-    });
-  }
-
-  function rerender() {
-    renderHeaderPills();
-    renderTables();
-    renderFilters();
-    renderMetrics();
-    renderOps();
-  }
-
-  function columnsString(cols) {
-    return cols.filter(function(c){ return c.key && c.sourceHeader; }).map(function(c){
-      var opts = [];
-      if (c.type === 'number') opts.push('type:number');
-      if (Number(c.decimals) > 0) opts.push('decimals:' + Number(c.decimals));
-      if (c.showColTotal) opts.push('showColTotal:true');
-      if (c.showRowTotal) opts.push('showRowTotal:true');
-      return c.key + ': ' + c.sourceHeader + (opts.length ? ' [' + opts.join('; ') + ']' : '');
-    }).join('; ');
-  }
-
-  function generate() {
-    var tablesText = state.tables.filter(function(t){ return t.name; }).map(function(t){
-      var aggPairs = t.columns.filter(function(c){ return c.agg; }).map(function(c){ return c.sourceHeader + ': ' + c.agg; }).join('; ');
-      return '    ' + t.name + ': {\n'
-        + '      columns: "' + columnsString(t).replace(/"/g, '\\"') + '",\n'
-        + '      tfoot: ' + !!t.tfoot + ',\n'
-        + '      locale: "' + (t.locale || 'en-CA') + '"'
-        + (t.groupBy ? ',\n      groupBy: "' + t.groupBy + '"' : '')
-        + (aggPairs ? ',\n      agg: "' + aggPairs + '"' : '')
-        + (t.pager ? ',\n      pager: { enabled: true, rowsPerPage: ' + (Number(t.rowsPerPage) || 10) + ' }' : '')
-        + '\n    }';
-    }).join(',\n');
-
-    var metricsText = state.metrics.filter(function(m){ return m.key && m.column; }).map(function(m){
-      return '    ' + m.key + ': { column: "' + m.column + '", agg: "' + (m.agg || 'count') + '" }';
-    }).join(',\n');
-
-    var opsText = state.ops.filter(function(o){ return o.key && o.left && o.right; }).map(function(o){
-      return '    ' + o.key + ': { op: "' + (o.op || 'divide') + '", left: "' + o.left + '", right: "' + o.right + '"'
-        + (String(o.decimals).trim() !== '' ? ', decimals: ' + Number(o.decimals) : '')
-        + (String(o.multiplyBy).trim() !== '' ? ', multiplyBy: ' + Number(o.multiplyBy) : '')
-        + ' }';
-    }).join(',\n');
-
-    var filtersText = state.filters.filter(function(f){ return f.table && f.column; }).map(function(f){
-      if (f.trigger === 'rowClick') {
-        return '    { table: "' + f.table + '", sourceTable: "' + (f.sourceTable || '') + '", sourceColumn: "' + (f.sourceColumn || '') + '", column: "' + f.column + '", trigger: "rowClick" }';
-      }
-      return '    { table: "' + f.table + '", select: "' + (f.select || '') + '", column: "' + f.column + '"' + (f.static ? ', static: true' : '') + ' }';
-    }).join(',\n');
-
-    var out = 'window.CSVTABLE_CONFIG = {\n'
-      + '  source: "' + (byId('sourceInput').value || '#source-data') + '",\n'
-      + '  tables: {\n' + tablesText + '\n  }';
-    if (metricsText) out += ',\n  sourceMetrics: {\n' + metricsText + '\n  }';
-    if (opsText) out += ',\n  sourceMetricOps: {\n' + opsText + '\n  }';
-    if (filtersText) out += ',\n  filters: [\n' + filtersText + '\n  ]';
-    out += ',\n  hooks: {\n'
-      + '    onFilter: function(e) {\n'
-      + '      // e.tableName, e.matchCount, e.filters\n'
-      + '      // e.sourceMetrics, e.sourceMetricOps\n'
-      + '    },\n'
-      + '    onRender: function(e) {\n'
-      + '      // e.tableName, e.rowCount, e.data\n'
-      + '      // e.sourceMetrics, e.sourceMetricOps\n'
-      + '    }\n'
-      + '  }\n'
-      + '};';
-
-    byId('configOut').textContent = out;
-    byId('hooksOut').textContent = [
-      'Available hook payload fields:',
-      '- table hooks: onFilter(e), onRender(e)',
-      '- e.tableName',
-      '- e.filters (onFilter only)',
-      '- e.matchCount (onFilter only)',
-      '- e.rowCount (onRender only)',
-      '- e.data (onRender only)',
-      '- e.sourceMetrics (source KPI aggregates)',
-      '- e.sourceMetricOps (source KPI operations)'
-    ].join('\n');
-    byId('attrsOut').textContent = [
-      'Select filter wiring:',
-      '<select id="region_select" data-filter-table="AssetDetail" data-filter-column="Region"></select>',
-      '',
-      'Reset button:',
-      '<button type="reset">Reset filters</button>',
-      '',
-      'Download buttons:',
-      '<button type="download-source">Download source CSV</button>',
-      '<button type="download-AssetDetail">Download AssetDetail CSV</button>',
-      '',
-      'Sortable header example:',
-      '<th class="sortable" data-sort-type="number">m2r</th>',
-      '',
-      'KPI tags:',
-      '<span>{source:totalUniqueAOID}</span>',
-      '<span>{source:m2rPerAoid}</span>'
-    ].join('\n');
-  }
-
-  function defaultColumn() {
-    return { key: 'col1', sourceHeader: state.headers[0] || '', type: 'text', decimals: 0, agg: '', showColTotal: false, showRowTotal: false };
-  }
-
-  function wireEvents() {
-    byId('parseBtn').addEventListener('click', function(){ parseHeaders(byId('headersInput').value); rerender(); generate(); });
-    byId('addTableBtn').addEventListener('click', function(){
-      state.tables.push({ name: 'Table' + (state.tables.length + 1), groupBy: '', locale: 'en-CA', tfoot: true, pager: false, rowsPerPage: 10, columns: [defaultColumn()] });
-      rerender();
-    });
-    byId('addFilterBtn').addEventListener('click', function(){
-      state.filters.push({ table: state.tables[0] ? state.tables[0].name : '', select: 'region_select', column: state.headers[0] || '', static: false, trigger: '', sourceTable: '', sourceColumn: '' });
-      rerender();
-    });
-    byId('addMetricBtn').addEventListener('click', function(){
-      state.metrics.push({ key: 'metric' + (state.metrics.length + 1), column: state.headers[0] || '', agg: 'count' });
-      rerender();
-    });
-    byId('addOpBtn').addEventListener('click', function(){
-      state.ops.push({ key: 'op' + (state.ops.length + 1), op: 'divide', left: state.metrics[0] ? state.metrics[0].key : '', right: state.metrics[1] ? state.metrics[1].key : (state.metrics[0] ? state.metrics[0].key : ''), decimals: 2, multiplyBy: '' });
-      rerender();
-    });
-    byId('generateBtn').addEventListener('click', generate);
-
-    doc.body.addEventListener('click', function(evt){
-      var act = evt.target.getAttribute('data-act');
-      if (!act) return;
-      var ti = Number(evt.target.getAttribute('data-ti'));
-      var ci = Number(evt.target.getAttribute('data-ci'));
-      var i = Number(evt.target.getAttribute('data-i'));
-      if (act === 'add-col') state.tables[ti].columns.push(defaultColumn());
-      if (act === 'del-col') state.tables[ti].columns.splice(ci, 1);
-      if (act === 'del-table') state.tables.splice(ti, 1);
-      if (act === 'del-filter') state.filters.splice(i, 1);
-      if (act === 'del-metric') state.metrics.splice(i, 1);
-      if (act === 'del-op') state.ops.splice(i, 1);
-      rerender();
-    });
-
-    doc.body.addEventListener('change', function(evt){
-      var scope = evt.target.getAttribute('data-scope');
-      if (!scope) return;
-      var k = evt.target.getAttribute('data-k');
-      var value = evt.target.type === 'checkbox' ? evt.target.checked : evt.target.value;
-      var ti = Number(evt.target.getAttribute('data-ti'));
-      var ci = Number(evt.target.getAttribute('data-ci'));
-      var i = Number(evt.target.getAttribute('data-i'));
-      if (scope === 'table') state.tables[ti][k] = value;
-      if (scope === 'col') state.tables[ti].columns[ci][k] = value;
-      if (scope === 'filter') state.filters[i][k] = value;
-      if (scope === 'metric') state.metrics[i][k] = value;
-      if (scope === 'op') state.ops[i][k] = value;
-    });
-  }
-
-  byId('headersInput').value = 'AOID,Region,Asset Name,m2r,Year,ContractID';
-  parseHeaders(byId('headersInput').value);
-  state.tables.push({ name: 'AssetDetail', groupBy: '', locale: 'en-CA', tfoot: true, pager: false, rowsPerPage: 10, columns: [defaultColumn()] });
-  wireEvents();
-  rerender();
-  generate();
-})();
-</script>
+<script>!function(){var e={headers:[],tables:[],filters:[],metrics:[],ops:[]},t=document,n=t.getElementById.bind(t),a=function(e,t){var n=document.createElement(e);return t&&(n.className=t),n},r=function(t){return"col"+(t+1)},o=function(){var t=n("headerPills");t.innerHTML="",e.headers.forEach(function(e){var n=a("span","pill");n.textContent=e,t.appendChild(n)})},i=function(t){var n=(t||"").split(/[\n,]+/).map(function(e){return e.trim()}).filter(Boolean),a=[];n.forEach(function(e){a.includes(e)||a.push(e)}),e.headers=a,o(),s(),l(),c(),u()},s=function(){var t=n("tables");t.innerHTML="",e.tables.forEach(function(t,o){var i=a("div","table-card"),s=t.columns.map(function(e,t){return'<div class="col-row"><div class="row"><label>Key<input data-k="key" value="'+(e.key||r(t))+'"></label><label>Source column<select data-k="sourceHeader">'+(e.headersSelect||"")+'</select></label><label>Type<select data-k="type"><option '+("text"===e.type?"selected":"")+'>text</option><option '+("number"===e.type?"selected":"")+'>number</option></select></label><label>Decimals<input type="number" min="0" data-k="decimals" value="'+(e.decimals||0)+'"></label><label>Locale<input data-k="locale" value="'+(e.locale||"")+'"></label><label>Agg<select data-k="agg"><option value=""></option><option '+("sum"===e.agg?"selected":"")+'>sum</option><option '+("count"===e.agg?"selected":"")+'>count</option><option '+("mean"===e.agg?"selected":"")+'>mean</option><option '+("min"===e.agg?"selected":"")+'>min</option><option '+("max"===e.agg?"selected":"")+'>max</option><option '+("nunique"===e.agg?"selected":"")+'>nunique</option></select></label><label><input type="checkbox" data-k="showColTotal" '+(e.showColTotal?"checked":"")+'> showColTotal</label><label><input type="checkbox" data-k="showRowTotal" '+(e.showRowTotal?"checked":"")+'> showRowTotal</label><label><input type="checkbox" data-k="sortable" '+(e.sortable?"checked":"")+'> sortable th</label><button type="button" data-act="del-col" data-ti="'+o+'" data-ci="'+t+'" class="danger">Remove</button></div></div>'}).join("");i.innerHTML='<div class="row"><label>Table name<input data-k="name" value="'+(t.name||"")+'"></label><label>Group by<select data-k="groupBy">'+d(t.groupBy)+'</select></label><label>Locale<input data-k="locale" value="'+(t.locale||"en-CA")+'"></label><label><input type="checkbox" data-k="tfoot" '+(t.tfoot?"checked":"")+'> tfoot</label><label><input type="checkbox" data-k="pager" '+(t.pager?"checked":"")+'> pager</label><label>Rows/page<input type="number" min="1" data-k="rowsPerPage" value="'+(t.rowsPerPage||10)+'"></label><button type="button" data-act="add-col" data-ti="'+o+'">Add column</button><button type="button" data-act="del-table" data-ti="'+o+'" class="danger">Remove table</button></div><div data-cols="'+o+'">'+s+"</div>",t.appendChild(i)})},d=function(t){var n='<option value=""></option>';return e.headers.forEach(function(e){n+='<option '+(e===t?"selected":"")+'>'+e+"</option>"}),n},l=function(){var t=n("filters");t.innerHTML="",e.filters.forEach(function(e,o){var i=a("div","filter-row");i.innerHTML='<div class="row"><label>Target table<select data-k="table">'+m(e.table)+'</select></label><label>Select id<input data-k="select" value="'+(e.select||"")+'"></label><label>Target column<select data-k="column">'+d(e.column)+'</select></label><label><input type="checkbox" data-k="static" '+(e.static?"checked":"")+'> static options</label><label>Trigger<select data-k="trigger"><option value="">select</option><option '+("rowClick"===e.trigger?"selected":"")+' value="rowClick">rowClick</option></select></label><label>Source table<select data-k="sourceTable">'+m(e.sourceTable)+'</select></label><label>Source column<select data-k="sourceColumn">'+d(e.sourceColumn)+'</select></label><button type="button" class="danger" data-act="del-filter" data-i="'+o+'">Remove</button></div>',t.appendChild(i)})},m=function(e){var t='<option value=""></option>';return this,e.tables.forEach(function(n){t+='<option '+(n.name===e?"selected":"")+'>'+n.name+"</option>"}),t},c=function(){var t=n("metrics");t.innerHTML="",e.metrics.forEach(function(e,n){var o=a("div","metric-row");o.innerHTML='<div class="row"><label>Metric key<input data-k="key" value="'+(e.key||"")+'"></label><label>Column<select data-k="column">'+d(e.column)+'</select></label><label>Agg<select data-k="agg"><option>count</option><option '+("sum"===e.agg?"selected":"")+'>sum</option><option '+("nunique"===e.agg?"selected":"")+'>nunique</option><option '+("mean"===e.agg?"selected":"")+'>mean</option><option '+("min"===e.agg?"selected":"")+'>min</option><option '+("max"===e.agg?"selected":"")+'>max</option></select></label><button type="button" class="danger" data-act="del-metric" data-i="'+n+'">Remove</button></div>',t.appendChild(o)})},u=function(){var t=n("ops");t.innerHTML="",e.ops.forEach(function(e,n){var o=a("div","op-row");o.innerHTML='<div class="row"><label>Op key<input data-k="key" value="'+(e.key||"")+'"></label><label>Operation<select data-k="op"><option>divide</option><option '+("multiply"===e.op?"selected":"")+'>multiply</option><option '+("add"===e.op?"selected":"")+'>add</option><option '+("subtract"===e.op?"selected":"")+'>subtract</option></select></label><label>Left metric<select data-k="left">'+p(e.left)+'</select></label><label>Right metric<select data-k="right">'+p(e.right)+'</select></label><label>Decimals<input type="number" min="0" data-k="decimals" value="'+(null==e.decimals?2:e.decimals)+'"></label><label>Multiply by<input type="number" step="any" data-k="multiplyBy" value="'+(null==e.multiplyBy?"":e.multiplyBy)+'"></label><button type="button" class="danger" data-act="del-op" data-i="'+n+'">Remove</button></div>',t.appendChild(o)})},p=function(e){var t='<option value=""></option>';return this,e.metrics.forEach(function(n){t+='<option '+(n.key===e?"selected":"")+'>'+n.key+"</option>"}),t},v=function(){e.tables=[],s(),l()},f=function(){if(!e.tables.length){e.tables.push({name:"AssetDetail",groupBy:"",locale:"en-CA",tfoot:!0,pager:!1,rowsPerPage:10,columns:[{key:"col1",sourceHeader:e.headers[0]||"",type:"text",decimals:0,locale:"",agg:"",showColTotal:!1,showRowTotal:!1,sortable:!1}]});s(),l()}},h=function(){var t=[];return e.tables.forEach(function(e){if(e.name){var n=e.columns.filter(function(e){return e.key&&e.sourceHeader}).map(function(e){var t=[];return"number"===e.type&&t.push("type:number"),e.decimals&&t.push("decimals:"+e.decimals),e.locale&&t.push("locale:"+e.locale),e.showColTotal&&t.push("showColTotal:true"),e.showRowTotal&&t.push("showRowTotal:true"),e.key+": "+e.sourceHeader+(t.length?" ["+t.join("; ")+"]":"")}).join("; "),a=e.columns.some(function(e){return e.agg}),r=e.columns.filter(function(e){return e.agg}).map(function(e){return e.sourceHeader+": "+e.agg}).join("; ");t.push("    "+e.name+": {\n      columns: \""+n.replace(/"/g,'\\"')+'\",\n      tfoot: '+!!e.tfoot+',\n      locale: \"'+(e.locale||"en-CA")+'\"'+(e.groupBy?',\n      groupBy: "'+e.groupBy+'"':"")+(a?',\n      agg: "'+r+'"':"")+(e.pager?',\n      pager: { enabled: true, rowsPerPage: '+(+e.rowsPerPage||10)+' }':"")+"\n    }")}}),t.join(",\n")},g=function(){var t=[];return e.filters.forEach(function(e){e.table&&e.column&&("rowClick"===e.trigger?t.push('    { table: "'+e.table+'", sourceTable: "'+(e.sourceTable||"")+'", sourceColumn: "'+(e.sourceColumn||"")+'", column: "'+e.column+'", trigger: "rowClick" }'):t.push('    { table: "'+e.table+'", select: "'+(e.select||"")+'", column: "'+e.column+'"'+(e.static?", static: true":"")+' }'))}),t.join(",\n")},y=function(){var t=[];return e.metrics.forEach(function(e){e.key&&e.column&&t.push('    '+e.key+': { column: "'+e.column+'", agg: "'+(e.agg||"count")+'" }')}),t.join(",\n")},b=function(){var t=[];return e.ops.forEach(function(e){e.key&&e.left&&e.right&&t.push('    '+e.key+': { op: "'+(e.op||"divide")+'", left: "'+e.left+'", right: "'+e.right+'"'+(null!=e.decimals?', decimals: '+e.decimals:"")+(""!==e.multiplyBy&&null!=e.multiplyBy?', multiplyBy: '+e.multiplyBy:"")+' }')}),t.join(",\n")},w=function(){var t='window.CSVTABLE_CONFIG = {\n  source: "'+(n("sourceInput").value||"#source-data")+'",\n  tables: {\n'+h()+'\n  }';y()&&(t+=',\n  sourceMetrics: {\n'+y()+'\n  }'),b()&&(t+=',\n  sourceMetricOps: {\n'+b()+'\n  }');var a=g();a&&(t+=',\n  filters: [\n'+a+'\n  ]'),t+='\n  hooks: {\n    onFilter: function(e) {\n      // e.tableName, e.matchCount, e.filters\n      // e.sourceMetrics, e.sourceMetricOps\n    },\n    onRender: function(e) {\n      // e.tableName, e.rowCount, e.data\n      // e.sourceMetrics, e.sourceMetricOps\n    }\n  }\n};',n("configOut").textContent=t,n("hooksOut").textContent='Available hook payload fields:\n- table hooks: onFilter(e), onRender(e)\n- e.tableName\n- e.filters (onFilter only)\n- e.matchCount (onFilter only)\n- e.rowCount (onRender only)\n- e.data (onRender only)\n- e.sourceMetrics (source KPI aggregates)\n- e.sourceMetricOps (source KPI operations)',n("attrsOut").textContent='Select filter wiring:\n<select id="region_select" data-filter-table="AssetDetail" data-filter-column="Region"></select>\n\nReset button:\n<button type="reset">Reset filters</button>\n\nDownload buttons:\n<button type="download-source">Download source CSV</button>\n<button type="download-AssetDetail">Download AssetDetail CSV</button>\n\nSortable header example:\n<th class="sortable" data-sort-type="number">m2r</th>\n\nKPI tags:\n<span>{source:totalUniqueAOID}</span>\n<span>{source:m2rPerAoid}</span>'},x=function(t){for(var n=t.target.closest(".table-card"),a=n&&Array.from(n.parentNode.children).indexOf(n),r=t.target.getAttribute("data-act"),o=t.target.getAttribute("data-ti"),i=t.target.getAttribute("data-ci"),d=t.target.getAttribute("data-i");"add-col"===r&&(e.tables[o].columns.push({key:"col"+(e.tables[o].columns.length+1),sourceHeader:e.headers[0]||"",type:"text",decimals:0,locale:"",agg:"",showColTotal:!1,showRowTotal:!1,sortable:!1}),s()),"del-col"===r&&(e.tables[o].columns.splice(i,1),s()),"del-table"===r&&(e.tables.splice(o,1),s(),l()),"del-filter"===r&&(e.filters.splice(d,1),l()),"del-metric"===r&&(e.metrics.splice(d,1),c(),u()),"del-op"===r&&(e.ops.splice(d,1),u()),n&&t.target.matches("input,select");){var m=t.target.getAttribute("data-k"),p=t.target.type==="checkbox"?t.target.checked:t.target.value,v=t.target.closest(".col-row"),f=v&&Array.from(v.parentNode.children).indexOf(v);if(v)e.tables[a].columns[f][m]=p;else if(t.target.closest(".filter-row")){var h=t.target.closest(".filter-row"),g=Array.from(h.parentNode.children).indexOf(h);e.filters[g][m]=p}else if(t.target.closest(".metric-row")){var y=t.target.closest(".metric-row"),b=Array.from(y.parentNode.children).indexOf(y);e.metrics[b][m]=p}else if(t.target.closest(".op-row")){var x=t.target.closest(".op-row"),k=Array.from(x.parentNode.children).indexOf(x);e.ops[k][m]=p}else n&&e.tables[a][m]=p;break}},k=function(){i(n("headersInput").value),f(),w()};n("parseBtn").addEventListener("click",k),n("addTableBtn").addEventListener("click",function(){e.tables.push({name:"Table"+(e.tables.length+1),groupBy:"",locale:"en-CA",tfoot:!0,pager:!1,rowsPerPage:10,columns:[{key:"col1",sourceHeader:e.headers[0]||"",type:"text",decimals:0,locale:"",agg:"",showColTotal:!1,showRowTotal:!1,sortable:!1}]}),s(),l()}),n("addFilterBtn").addEventListener("click",function(){e.filters.push({table:e.tables[0]&&e.tables[0].name||"",select:"region_select",column:e.headers[0]||"",static:!1,trigger:"",sourceTable:"",sourceColumn:""}),l()}),n("addMetricBtn").addEventListener("click",function(){e.metrics.push({key:"metric"+(e.metrics.length+1),column:e.headers[0]||"",agg:"count"}),c(),u()}),n("addOpBtn").addEventListener("click",function(){e.ops.push({key:"op"+(e.ops.length+1),op:"divide",left:e.metrics[0]&&e.metrics[0].key||"",right:e.metrics[1]&&e.metrics[1].key||e.metrics[0]&&e.metrics[0].key||"",decimals:2,multiplyBy:""}),u()}),document.body.addEventListener("click",x),document.body.addEventListener("change",x),n("generateBtn").addEventListener("click",w),n("headersInput").value="AOID,Region,Asset Name,m2r,Year,ContractID",k()}();</script>
 </body>
 </html>
