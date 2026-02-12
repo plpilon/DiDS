@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>csvtable Config Assistant</title>
+  <style>
+    :root { --bg:#f7f7fb; --card:#fff; --line:#d8dbe8; --text:#1f2937; --muted:#6b7280; --accent:#2563eb; }
+    body { margin:0; font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto; background:var(--bg); color:var(--text); }
+    .wrap { max-width: 1200px; margin: 24px auto; padding: 0 16px 40px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:14px; }
+    h1,h2,h3 { margin: 6px 0 10px; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 16px; }
+    h3 { font-size: 14px; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; align-items:center; }
+    label { font-size: 12px; color:#374151; display:flex; flex-direction:column; gap:4px; }
+    input,select,textarea,button { border:1px solid var(--line); border-radius:8px; padding:7px 9px; font:inherit; }
+    textarea { width:100%; min-height:90px; resize:vertical; }
+    button { background:#fff; cursor:pointer; }
+    button.primary { background: var(--accent); color:#fff; border-color: var(--accent); }
+    button.danger { background:#fee2e2; border-color:#fca5a5; }
+    .table-card,.filter-row,.metric-row,.op-row { border:1px dashed #c8cfeb; border-radius:8px; padding:10px; margin-top:8px; }
+    .pill { display:inline-block; background:#eef2ff; border:1px solid #c7d2fe; color:#3730a3; border-radius:20px; padding:2px 10px; font-size:12px; margin:3px 5px 0 0; }
+    pre { background:#0b1020; color:#d1f7ff; padding:12px; border-radius:8px; overflow:auto; max-height:420px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>csvtable Rules Based Config Assistant</h1>
+  <p class="muted">Paste CSV headers, define tables, filters, source metrics, and operations. Then copy generated config, hooks, and wiring snippets.</p>
+
+  <section class="card">
+    <h2>1) Source</h2>
+    <label>CSV headers (comma or newline separated)
+      <textarea id="headersInput" placeholder="AOID,Region,Asset Name,m2r,Year"></textarea>
+    </label>
+    <div class="row">
+      <label>Source selector or file path <input id="sourceInput" value="#source-data" /></label>
+      <button id="parseBtn" class="primary" type="button">Parse headers</button>
+    </div>
+    <div id="headerPills"></div>
+  </section>
+
+  <section class="card">
+    <h2>2) Tables</h2>
+    <div id="tables"></div>
+    <button id="addTableBtn" type="button">Add table</button>
+  </section>
+
+  <section class="card">
+    <h2>3) Filters and interactivity</h2>
+    <div id="filters"></div>
+    <button id="addFilterBtn" type="button">Add filter binding</button>
+  </section>
+
+  <section class="card">
+    <h2>4) Source metrics and KPI operations</h2>
+    <h3>Source metrics</h3>
+    <div id="metrics"></div>
+    <button id="addMetricBtn" type="button">Add source metric</button>
+    <h3 style="margin-top:12px;">Metric operations</h3>
+    <div id="ops"></div>
+    <button id="addOpBtn" type="button">Add metric operation</button>
+  </section>
+
+  <section class="card">
+    <h2>5) Generate output</h2>
+    <button id="generateBtn" class="primary" type="button">Generate config and snippets</button>
+    <h3>window.CSVTABLE_CONFIG</h3>
+    <pre id="configOut"></pre>
+    <h3>Hooks reference block</h3>
+    <pre id="hooksOut"></pre>
+    <h3>HTML wiring snippets</h3>
+    <pre id="attrsOut"></pre>
+  </section>
+</div>
+
+<script>
+(function(){
+  var state = { headers: [], tables: [], filters: [], metrics: [], ops: [] };
+  var doc = document;
+  var byId = function(id){ return doc.getElementById(id); };
+
+  function esc(value) { return String(value == null ? "" : value).replace(/"/g, '&quot;'); }
+  function parseHeaders(raw) {
+    var seen = {};
+    state.headers = String(raw || "").split(/[\n,]+/).map(function(s){ return s.trim(); }).filter(Boolean).filter(function(h){
+      if (seen[h]) return false;
+      seen[h] = true;
+      return true;
+    });
+  }
+  function optionsFromHeaders(selected) {
+    var html = '<option value=""></option>';
+    state.headers.forEach(function(h){ html += '<option value="'+esc(h)+'"'+(h===selected?' selected':'')+'>'+h+'</option>'; });
+    return html;
+  }
+  function optionsFromTables(selected) {
+    var html = '<option value=""></option>';
+    state.tables.forEach(function(t){ html += '<option value="'+esc(t.name)+'"'+(t.name===selected?' selected':'')+'>'+t.name+'</option>'; });
+    return html;
+  }
+  function optionsFromMetricKeys(selected) {
+    var html = '<option value=""></option>';
+    state.metrics.forEach(function(m){ html += '<option value="'+esc(m.key)+'"'+(m.key===selected?' selected':'')+'>'+m.key+'</option>'; });
+    return html;
+  }
+
+  function renderHeaderPills() {
+    var el = byId('headerPills');
+    el.innerHTML = '';
+    state.headers.forEach(function(h){
+      var span = doc.createElement('span');
+      span.className = 'pill';
+      span.textContent = h;
+      el.appendChild(span);
+    });
+  }
+
+  function renderTables() {
+    var root = byId('tables');
+    root.innerHTML = '';
+    state.tables.forEach(function(table, tIndex){
+      var columnsHtml = table.columns.map(function(col, cIndex){
+        return '<div class="row">'
+          + '<label>Key<input data-scope="col" data-ti="'+tIndex+'" data-ci="'+cIndex+'" data-k="key" value="'+esc(col.key)+'"></label>'
+          + '<label>Source column<select data-scope="col" data-ti="'+tIndex+'" data-ci="'+cIndex+'" data-k="sourceHeader">'+optionsFromHeaders(col.sourceHeader)+'</select></label>'
+          + '<label>Type<select data-scope="col" data-ti="'+tIndex+'" data-ci="'+cIndex+'" data-k="type"><option value="text"'+(col.type==='text'?' selected':'')+'>text</option><option value="number"'+(col.type==='number'?' selected':'')+'>number</option></select></label>'
+          + '<label>Decimals<input type="number" min="0" data-scope="col" data-ti="'+tIndex+'" data-ci="'+cIndex+'" data-k="decimals" value="'+esc(col.decimals)+'"></label>'
+          + '<label>Agg<select data-scope="col" data-ti="'+tIndex+'" data-ci="'+cIndex+'" data-k="agg"><option value=""></option><option value="sum"'+(col.agg==='sum'?' selected':'')+'>sum</option><option value="count"'+(col.agg==='count'?' selected':'')+'>count</option><option value="mean"'+(col.agg==='mean'?' selected':'')+'>mean</option><option value="min"'+(col.agg==='min'?' selected':'')+'>min</option><option value="max"'+(col.agg==='max'?' selected':'')+'>max</option><option value="nunique"'+(col.agg==='nunique'?' selected':'')+'>nunique</option></select></label>'
+          + '<label><input type="checkbox" data-scope="col" data-ti="'+tIndex+'" data-ci="'+cIndex+'" data-k="showColTotal"'+(col.showColTotal?' checked':'')+'> showColTotal</label>'
+          + '<label><input type="checkbox" data-scope="col" data-ti="'+tIndex+'" data-ci="'+cIndex+'" data-k="showRowTotal"'+(col.showRowTotal?' checked':'')+'> showRowTotal</label>'
+          + '<button type="button" class="danger" data-act="del-col" data-ti="'+tIndex+'" data-ci="'+cIndex+'">Remove col</button>'
+          + '</div>';
+      }).join('');
+
+      var card = doc.createElement('div');
+      card.className = 'table-card';
+      card.innerHTML = '<div class="row">'
+        + '<label>Table name<input data-scope="table" data-ti="'+tIndex+'" data-k="name" value="'+esc(table.name)+'"></label>'
+        + '<label>Group by<select data-scope="table" data-ti="'+tIndex+'" data-k="groupBy">'+optionsFromHeaders(table.groupBy)+'</select></label>'
+        + '<label>Locale<input data-scope="table" data-ti="'+tIndex+'" data-k="locale" value="'+esc(table.locale)+'"></label>'
+        + '<label><input type="checkbox" data-scope="table" data-ti="'+tIndex+'" data-k="tfoot"'+(table.tfoot?' checked':'')+'> tfoot</label>'
+        + '<label><input type="checkbox" data-scope="table" data-ti="'+tIndex+'" data-k="pager"'+(table.pager?' checked':'')+'> pager</label>'
+        + '<label>Rows/page<input type="number" min="1" data-scope="table" data-ti="'+tIndex+'" data-k="rowsPerPage" value="'+esc(table.rowsPerPage)+'"></label>'
+        + '<button type="button" data-act="add-col" data-ti="'+tIndex+'">Add column</button>'
+        + '<button type="button" class="danger" data-act="del-table" data-ti="'+tIndex+'">Remove table</button>'
+        + '</div>' + columnsHtml;
+      root.appendChild(card);
+    });
+  }
+
+  function renderFilters() {
+    var root = byId('filters');
+    root.innerHTML = '';
+    state.filters.forEach(function(f, i){
+      var row = doc.createElement('div');
+      row.className = 'filter-row';
+      row.innerHTML = '<div class="row">'
+        + '<label>Target table<select data-scope="filter" data-i="'+i+'" data-k="table">'+optionsFromTables(f.table)+'</select></label>'
+        + '<label>Select id<input data-scope="filter" data-i="'+i+'" data-k="select" value="'+esc(f.select)+'"></label>'
+        + '<label>Target column<select data-scope="filter" data-i="'+i+'" data-k="column">'+optionsFromHeaders(f.column)+'</select></label>'
+        + '<label><input type="checkbox" data-scope="filter" data-i="'+i+'" data-k="static"'+(f.static?' checked':'')+'> static options</label>'
+        + '<label>Trigger<select data-scope="filter" data-i="'+i+'" data-k="trigger"><option value="">select</option><option value="rowClick"'+(f.trigger==='rowClick'?' selected':'')+'>rowClick</option></select></label>'
+        + '<label>Source table<select data-scope="filter" data-i="'+i+'" data-k="sourceTable">'+optionsFromTables(f.sourceTable)+'</select></label>'
+        + '<label>Source column<select data-scope="filter" data-i="'+i+'" data-k="sourceColumn">'+optionsFromHeaders(f.sourceColumn)+'</select></label>'
+        + '<button type="button" class="danger" data-act="del-filter" data-i="'+i+'">Remove</button>'
+        + '</div>';
+      root.appendChild(row);
+    });
+  }
+
+  function renderMetrics() {
+    var root = byId('metrics');
+    root.innerHTML = '';
+    state.metrics.forEach(function(m, i){
+      var row = doc.createElement('div');
+      row.className = 'metric-row';
+      row.innerHTML = '<div class="row">'
+        + '<label>Metric key<input data-scope="metric" data-i="'+i+'" data-k="key" value="'+esc(m.key)+'"></label>'
+        + '<label>Column<select data-scope="metric" data-i="'+i+'" data-k="column">'+optionsFromHeaders(m.column)+'</select></label>'
+        + '<label>Agg<select data-scope="metric" data-i="'+i+'" data-k="agg"><option value="count"'+(m.agg==='count'?' selected':'')+'>count</option><option value="sum"'+(m.agg==='sum'?' selected':'')+'>sum</option><option value="nunique"'+(m.agg==='nunique'?' selected':'')+'>nunique</option><option value="mean"'+(m.agg==='mean'?' selected':'')+'>mean</option><option value="min"'+(m.agg==='min'?' selected':'')+'>min</option><option value="max"'+(m.agg==='max'?' selected':'')+'>max</option></select></label>'
+        + '<button type="button" class="danger" data-act="del-metric" data-i="'+i+'">Remove</button>'
+        + '</div>';
+      root.appendChild(row);
+    });
+  }
+
+  function renderOps() {
+    var root = byId('ops');
+    root.innerHTML = '';
+    state.ops.forEach(function(op, i){
+      var row = doc.createElement('div');
+      row.className = 'op-row';
+      row.innerHTML = '<div class="row">'
+        + '<label>Op key<input data-scope="op" data-i="'+i+'" data-k="key" value="'+esc(op.key)+'"></label>'
+        + '<label>Operation<select data-scope="op" data-i="'+i+'" data-k="op"><option value="divide"'+(op.op==='divide'?' selected':'')+'>divide</option><option value="multiply"'+(op.op==='multiply'?' selected':'')+'>multiply</option><option value="add"'+(op.op==='add'?' selected':'')+'>add</option><option value="subtract"'+(op.op==='subtract'?' selected':'')+'>subtract</option></select></label>'
+        + '<label>Left metric<select data-scope="op" data-i="'+i+'" data-k="left">'+optionsFromMetricKeys(op.left)+'</select></label>'
+        + '<label>Right metric<select data-scope="op" data-i="'+i+'" data-k="right">'+optionsFromMetricKeys(op.right)+'</select></label>'
+        + '<label>Decimals<input type="number" min="0" data-scope="op" data-i="'+i+'" data-k="decimals" value="'+esc(op.decimals)+'"></label>'
+        + '<label>Multiply by<input type="number" step="any" data-scope="op" data-i="'+i+'" data-k="multiplyBy" value="'+esc(op.multiplyBy)+'"></label>'
+        + '<button type="button" class="danger" data-act="del-op" data-i="'+i+'">Remove</button>'
+        + '</div>';
+      root.appendChild(row);
+    });
+  }
+
+  function rerender() {
+    renderHeaderPills();
+    renderTables();
+    renderFilters();
+    renderMetrics();
+    renderOps();
+  }
+
+  function columnsString(cols) {
+    return cols.filter(function(c){ return c.key && c.sourceHeader; }).map(function(c){
+      var opts = [];
+      if (c.type === 'number') opts.push('type:number');
+      if (Number(c.decimals) > 0) opts.push('decimals:' + Number(c.decimals));
+      if (c.showColTotal) opts.push('showColTotal:true');
+      if (c.showRowTotal) opts.push('showRowTotal:true');
+      return c.key + ': ' + c.sourceHeader + (opts.length ? ' [' + opts.join('; ') + ']' : '');
+    }).join('; ');
+  }
+
+  function generate() {
+    var tablesText = state.tables.filter(function(t){ return t.name; }).map(function(t){
+      var aggPairs = t.columns.filter(function(c){ return c.agg; }).map(function(c){ return c.sourceHeader + ': ' + c.agg; }).join('; ');
+      return '    ' + t.name + ': {\n'
+        + '      columns: "' + columnsString(t).replace(/"/g, '\\"') + '",\n'
+        + '      tfoot: ' + !!t.tfoot + ',\n'
+        + '      locale: "' + (t.locale || 'en-CA') + '"'
+        + (t.groupBy ? ',\n      groupBy: "' + t.groupBy + '"' : '')
+        + (aggPairs ? ',\n      agg: "' + aggPairs + '"' : '')
+        + (t.pager ? ',\n      pager: { enabled: true, rowsPerPage: ' + (Number(t.rowsPerPage) || 10) + ' }' : '')
+        + '\n    }';
+    }).join(',\n');
+
+    var metricsText = state.metrics.filter(function(m){ return m.key && m.column; }).map(function(m){
+      return '    ' + m.key + ': { column: "' + m.column + '", agg: "' + (m.agg || 'count') + '" }';
+    }).join(',\n');
+
+    var opsText = state.ops.filter(function(o){ return o.key && o.left && o.right; }).map(function(o){
+      return '    ' + o.key + ': { op: "' + (o.op || 'divide') + '", left: "' + o.left + '", right: "' + o.right + '"'
+        + (String(o.decimals).trim() !== '' ? ', decimals: ' + Number(o.decimals) : '')
+        + (String(o.multiplyBy).trim() !== '' ? ', multiplyBy: ' + Number(o.multiplyBy) : '')
+        + ' }';
+    }).join(',\n');
+
+    var filtersText = state.filters.filter(function(f){ return f.table && f.column; }).map(function(f){
+      if (f.trigger === 'rowClick') {
+        return '    { table: "' + f.table + '", sourceTable: "' + (f.sourceTable || '') + '", sourceColumn: "' + (f.sourceColumn || '') + '", column: "' + f.column + '", trigger: "rowClick" }';
+      }
+      return '    { table: "' + f.table + '", select: "' + (f.select || '') + '", column: "' + f.column + '"' + (f.static ? ', static: true' : '') + ' }';
+    }).join(',\n');
+
+    var out = 'window.CSVTABLE_CONFIG = {\n'
+      + '  source: "' + (byId('sourceInput').value || '#source-data') + '",\n'
+      + '  tables: {\n' + tablesText + '\n  }';
+    if (metricsText) out += ',\n  sourceMetrics: {\n' + metricsText + '\n  }';
+    if (opsText) out += ',\n  sourceMetricOps: {\n' + opsText + '\n  }';
+    if (filtersText) out += ',\n  filters: [\n' + filtersText + '\n  ]';
+    out += ',\n  hooks: {\n'
+      + '    onFilter: function(e) {\n'
+      + '      // e.tableName, e.matchCount, e.filters\n'
+      + '      // e.sourceMetrics, e.sourceMetricOps\n'
+      + '    },\n'
+      + '    onRender: function(e) {\n'
+      + '      // e.tableName, e.rowCount, e.data\n'
+      + '      // e.sourceMetrics, e.sourceMetricOps\n'
+      + '    }\n'
+      + '  }\n'
+      + '};';
+
+    byId('configOut').textContent = out;
+    byId('hooksOut').textContent = [
+      'Available hook payload fields:',
+      '- table hooks: onFilter(e), onRender(e)',
+      '- e.tableName',
+      '- e.filters (onFilter only)',
+      '- e.matchCount (onFilter only)',
+      '- e.rowCount (onRender only)',
+      '- e.data (onRender only)',
+      '- e.sourceMetrics (source KPI aggregates)',
+      '- e.sourceMetricOps (source KPI operations)'
+    ].join('\n');
+    byId('attrsOut').textContent = [
+      'Select filter wiring:',
+      '<select id="region_select" data-filter-table="AssetDetail" data-filter-column="Region"></select>',
+      '',
+      'Reset button:',
+      '<button type="reset">Reset filters</button>',
+      '',
+      'Download buttons:',
+      '<button type="download-source">Download source CSV</button>',
+      '<button type="download-AssetDetail">Download AssetDetail CSV</button>',
+      '',
+      'Sortable header example:',
+      '<th class="sortable" data-sort-type="number">m2r</th>',
+      '',
+      'KPI tags:',
+      '<span>{source:totalUniqueAOID}</span>',
+      '<span>{source:m2rPerAoid}</span>'
+    ].join('\n');
+  }
+
+  function defaultColumn() {
+    return { key: 'col1', sourceHeader: state.headers[0] || '', type: 'text', decimals: 0, agg: '', showColTotal: false, showRowTotal: false };
+  }
+
+  function wireEvents() {
+    byId('parseBtn').addEventListener('click', function(){ parseHeaders(byId('headersInput').value); rerender(); generate(); });
+    byId('addTableBtn').addEventListener('click', function(){
+      state.tables.push({ name: 'Table' + (state.tables.length + 1), groupBy: '', locale: 'en-CA', tfoot: true, pager: false, rowsPerPage: 10, columns: [defaultColumn()] });
+      rerender();
+    });
+    byId('addFilterBtn').addEventListener('click', function(){
+      state.filters.push({ table: state.tables[0] ? state.tables[0].name : '', select: 'region_select', column: state.headers[0] || '', static: false, trigger: '', sourceTable: '', sourceColumn: '' });
+      rerender();
+    });
+    byId('addMetricBtn').addEventListener('click', function(){
+      state.metrics.push({ key: 'metric' + (state.metrics.length + 1), column: state.headers[0] || '', agg: 'count' });
+      rerender();
+    });
+    byId('addOpBtn').addEventListener('click', function(){
+      state.ops.push({ key: 'op' + (state.ops.length + 1), op: 'divide', left: state.metrics[0] ? state.metrics[0].key : '', right: state.metrics[1] ? state.metrics[1].key : (state.metrics[0] ? state.metrics[0].key : ''), decimals: 2, multiplyBy: '' });
+      rerender();
+    });
+    byId('generateBtn').addEventListener('click', generate);
+
+    doc.body.addEventListener('click', function(evt){
+      var act = evt.target.getAttribute('data-act');
+      if (!act) return;
+      var ti = Number(evt.target.getAttribute('data-ti'));
+      var ci = Number(evt.target.getAttribute('data-ci'));
+      var i = Number(evt.target.getAttribute('data-i'));
+      if (act === 'add-col') state.tables[ti].columns.push(defaultColumn());
+      if (act === 'del-col') state.tables[ti].columns.splice(ci, 1);
+      if (act === 'del-table') state.tables.splice(ti, 1);
+      if (act === 'del-filter') state.filters.splice(i, 1);
+      if (act === 'del-metric') state.metrics.splice(i, 1);
+      if (act === 'del-op') state.ops.splice(i, 1);
+      rerender();
+    });
+
+    doc.body.addEventListener('change', function(evt){
+      var scope = evt.target.getAttribute('data-scope');
+      if (!scope) return;
+      var k = evt.target.getAttribute('data-k');
+      var value = evt.target.type === 'checkbox' ? evt.target.checked : evt.target.value;
+      var ti = Number(evt.target.getAttribute('data-ti'));
+      var ci = Number(evt.target.getAttribute('data-ci'));
+      var i = Number(evt.target.getAttribute('data-i'));
+      if (scope === 'table') state.tables[ti][k] = value;
+      if (scope === 'col') state.tables[ti].columns[ci][k] = value;
+      if (scope === 'filter') state.filters[i][k] = value;
+      if (scope === 'metric') state.metrics[i][k] = value;
+      if (scope === 'op') state.ops[i][k] = value;
+    });
+  }
+
+  byId('headersInput').value = 'AOID,Region,Asset Name,m2r,Year,ContractID';
+  parseHeaders(byId('headersInput').value);
+  state.tables.push({ name: 'AssetDetail', groupBy: '', locale: 'en-CA', tfoot: true, pager: false, rowsPerPage: 10, columns: [defaultColumn()] });
+  wireEvents();
+  rerender();
+  generate();
+})();
+</script>
+</body>
+</html>
