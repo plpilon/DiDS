@@ -83,7 +83,6 @@ Example:
 <button type="download-AssetDetail">Download AssetDetail CSV</button>
 ```
 
-<<<<<<< codex/update-readme.md-and-instructions.md-7k3rkm
 
 ## Source metrics for KPIs
 
@@ -106,9 +105,6 @@ window.CSVTABLE_CONFIG = {
   }
 };
 ```
-
-=======
->>>>>>> main
 ## Validation
 
 - Syntax check:
