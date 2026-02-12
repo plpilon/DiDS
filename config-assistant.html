@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>csvtable Config Assistant</title>
+  <style>
+    :root { --bg:#f7f7fb; --card:#fff; --line:#d8dbe8; --text:#1f2937; --muted:#6b7280; --accent:#2563eb; }
+    body { margin:0; font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto; background:var(--bg); color:var(--text); }
+    .wrap { max-width: 1200px; margin: 24px auto; padding: 0 16px 40px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:14px; }
+    h1,h2,h3 { margin: 6px 0 10px; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 16px; }
+    h3 { font-size: 14px; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; align-items:center; }
+    label { font-size: 12px; color:#374151; display:flex; flex-direction:column; gap:4px; }
+    input,select,textarea,button { border:1px solid var(--line); border-radius:8px; padding:7px 9px; font:inherit; }
+    textarea { width:100%; min-height:90px; resize:vertical; }
+    button { background:#fff; cursor:pointer; }
+    button.primary { background: var(--accent); color:#fff; border-color: var(--accent); }
+    button.danger { background:#fee2e2; border-color:#fca5a5; }
+    .table-card { border:1px dashed #c8cfeb; border-radius:8px; padding:10px; margin-top:8px; }
+    .pill { display:inline-block; background:#eef2ff; border:1px solid #c7d2fe; color:#3730a3; border-radius:20px; padding:2px 10px; font-size:12px; margin:3px 5px 0 0; }
+    pre { background:#0b1020; color:#d1f7ff; padding:12px; border-radius:8px; overflow:auto; max-height:420px; }
+    .col-row,.metric-row,.op-row,.filter-row { border:1px solid #eceff7; border-radius:8px; padding:8px; margin-bottom:6px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>csvtable Rules Based Config Assistant</h1>
+  <p class="muted">Paste CSV headers, define tables, columns, filters, source metrics, and metric operations. Then copy generated config, hooks, and HTML wiring snippets.</p>
+
+  <section class="card">
+    <h2>1) Source</h2>
+    <div class="row">
+      <label style="flex:1 1 560px;">CSV headers (comma or newline separated)
+        <textarea id="headersInput" placeholder="AOID,Region,Asset Name,m2r,Year"></textarea>
+      </label>
+    </div>
+    <div class="row">
+      <label>Source selector or file path <input id="sourceInput" value="#source-data" /></label>
+      <button id="parseBtn" class="primary" type="button">Parse headers</button>
+    </div>
+    <div id="headerPills"></div>
+  </section>
+
+  <section class="card">
+    <h2>2) Tables</h2>
+    <div id="tables"></div>
+    <button id="addTableBtn" type="button">Add table</button>
+  </section>
+
+  <section class="card">
+    <h2>3) Filters and interactivity</h2>
+    <div id="filters"></div>
+    <button id="addFilterBtn" type="button">Add filter binding</button>
+  </section>
+
+  <section class="card">
+    <h2>4) Source metrics and KPI operations</h2>
+    <h3>Source metrics</h3>
+    <div id="metrics"></div>
+    <button id="addMetricBtn" type="button">Add source metric</button>
+    <h3 style="margin-top:12px;">Metric operations</h3>
+    <div id="ops"></div>
+    <button id="addOpBtn" type="button">Add metric operation</button>
+  </section>
+
+  <section class="card">
+    <h2>5) Generate output</h2>
+    <div class="row">
+      <button id="generateBtn" class="primary" type="button">Generate config and snippets</button>
+    </div>
+    <h3>window.CSVTABLE_CONFIG</h3>
+    <pre id="configOut"></pre>
+    <h3>Hooks reference block</h3>
+    <pre id="hooksOut"></pre>
+    <h3>HTML wiring snippets</h3>
+    <pre id="attrsOut"></pre>
+  </section>
+</div>
+
+<script>!function(){var e={headers:[],tables:[],filters:[],metrics:[],ops:[]},t=document,n=t.getElementById.bind(t),a=function(e,t){var n=document.createElement(e);return t&&(n.className=t),n},r=function(t){return"col"+(t+1)},o=function(){var t=n("headerPills");t.innerHTML="",e.headers.forEach(function(e){var n=a("span","pill");n.textContent=e,t.appendChild(n)})},i=function(t){var n=(t||"").split(/[\n,]+/).map(function(e){return e.trim()}).filter(Boolean),a=[];n.forEach(function(e){a.includes(e)||a.push(e)}),e.headers=a,o(),s(),l(),c(),u()},s=function(){var t=n("tables");t.innerHTML="",e.tables.forEach(function(t,o){var i=a("div","table-card"),s=t.columns.map(function(e,t){return'<div class="col-row"><div class="row"><label>Key<input data-k="key" value="'+(e.key||r(t))+'"></label><label>Source column<select data-k="sourceHeader">'+(e.headersSelect||"")+'</select></label><label>Type<select data-k="type"><option '+("text"===e.type?"selected":"")+'>text</option><option '+("number"===e.type?"selected":"")+'>number</option></select></label><label>Decimals<input type="number" min="0" data-k="decimals" value="'+(e.decimals||0)+'"></label><label>Locale<input data-k="locale" value="'+(e.locale||"")+'"></label><label>Agg<select data-k="agg"><option value=""></option><option '+("sum"===e.agg?"selected":"")+'>sum</option><option '+("count"===e.agg?"selected":"")+'>count</option><option '+("mean"===e.agg?"selected":"")+'>mean</option><option '+("min"===e.agg?"selected":"")+'>min</option><option '+("max"===e.agg?"selected":"")+'>max</option><option '+("nunique"===e.agg?"selected":"")+'>nunique</option></select></label><label><input type="checkbox" data-k="showColTotal" '+(e.showColTotal?"checked":"")+'> showColTotal</label><label><input type="checkbox" data-k="showRowTotal" '+(e.showRowTotal?"checked":"")+'> showRowTotal</label><label><input type="checkbox" data-k="sortable" '+(e.sortable?"checked":"")+'> sortable th</label><button type="button" data-act="del-col" data-ti="'+o+'" data-ci="'+t+'" class="danger">Remove</button></div></div>'}).join("");i.innerHTML='<div class="row"><label>Table name<input data-k="name" value="'+(t.name||"")+'"></label><label>Group by<select data-k="groupBy">'+d(t.groupBy)+'</select></label><label>Locale<input data-k="locale" value="'+(t.locale||"en-CA")+'"></label><label><input type="checkbox" data-k="tfoot" '+(t.tfoot?"checked":"")+'> tfoot</label><label><input type="checkbox" data-k="pager" '+(t.pager?"checked":"")+'> pager</label><label>Rows/page<input type="number" min="1" data-k="rowsPerPage" value="'+(t.rowsPerPage||10)+'"></label><button type="button" data-act="add-col" data-ti="'+o+'">Add column</button><button type="button" data-act="del-table" data-ti="'+o+'" class="danger">Remove table</button></div><div data-cols="'+o+'">'+s+"</div>",t.appendChild(i)})},d=function(t){var n='<option value=""></option>';return e.headers.forEach(function(e){n+='<option '+(e===t?"selected":"")+'>'+e+"</option>"}),n},l=function(){var t=n("filters");t.innerHTML="",e.filters.forEach(function(e,o){var i=a("div","filter-row");i.innerHTML='<div class="row"><label>Target table<select data-k="table">'+m(e.table)+'</select></label><label>Select id<input data-k="select" value="'+(e.select||"")+'"></label><label>Target column<select data-k="column">'+d(e.column)+'</select></label><label><input type="checkbox" data-k="static" '+(e.static?"checked":"")+'> static options</label><label>Trigger<select data-k="trigger"><option value="">select</option><option '+("rowClick"===e.trigger?"selected":"")+' value="rowClick">rowClick</option></select></label><label>Source table<select data-k="sourceTable">'+m(e.sourceTable)+'</select></label><label>Source column<select data-k="sourceColumn">'+d(e.sourceColumn)+'</select></label><button type="button" class="danger" data-act="del-filter" data-i="'+o+'">Remove</button></div>',t.appendChild(i)})},m=function(e){var t='<option value=""></option>';return this,e.tables.forEach(function(n){t+='<option '+(n.name===e?"selected":"")+'>'+n.name+"</option>"}),t},c=function(){var t=n("metrics");t.innerHTML="",e.metrics.forEach(function(e,n){var o=a("div","metric-row");o.innerHTML='<div class="row"><label>Metric key<input data-k="key" value="'+(e.key||"")+'"></label><label>Column<select data-k="column">'+d(e.column)+'</select></label><label>Agg<select data-k="agg"><option>count</option><option '+("sum"===e.agg?"selected":"")+'>sum</option><option '+("nunique"===e.agg?"selected":"")+'>nunique</option><option '+("mean"===e.agg?"selected":"")+'>mean</option><option '+("min"===e.agg?"selected":"")+'>min</option><option '+("max"===e.agg?"selected":"")+'>max</option></select></label><button type="button" class="danger" data-act="del-metric" data-i="'+n+'">Remove</button></div>',t.appendChild(o)})},u=function(){var t=n("ops");t.innerHTML="",e.ops.forEach(function(e,n){var o=a("div","op-row");o.innerHTML='<div class="row"><label>Op key<input data-k="key" value="'+(e.key||"")+'"></label><label>Operation<select data-k="op"><option>divide</option><option '+("multiply"===e.op?"selected":"")+'>multiply</option><option '+("add"===e.op?"selected":"")+'>add</option><option '+("subtract"===e.op?"selected":"")+'>subtract</option></select></label><label>Left metric<select data-k="left">'+p(e.left)+'</select></label><label>Right metric<select data-k="right">'+p(e.right)+'</select></label><label>Decimals<input type="number" min="0" data-k="decimals" value="'+(null==e.decimals?2:e.decimals)+'"></label><label>Multiply by<input type="number" step="any" data-k="multiplyBy" value="'+(null==e.multiplyBy?"":e.multiplyBy)+'"></label><button type="button" class="danger" data-act="del-op" data-i="'+n+'">Remove</button></div>',t.appendChild(o)})},p=function(e){var t='<option value=""></option>';return this,e.metrics.forEach(function(n){t+='<option '+(n.key===e?"selected":"")+'>'+n.key+"</option>"}),t},v=function(){e.tables=[],s(),l()},f=function(){if(!e.tables.length){e.tables.push({name:"AssetDetail",groupBy:"",locale:"en-CA",tfoot:!0,pager:!1,rowsPerPage:10,columns:[{key:"col1",sourceHeader:e.headers[0]||"",type:"text",decimals:0,locale:"",agg:"",showColTotal:!1,showRowTotal:!1,sortable:!1}]});s(),l()}},h=function(){var t=[];return e.tables.forEach(function(e){if(e.name){var n=e.columns.filter(function(e){return e.key&&e.sourceHeader}).map(function(e){var t=[];return"number"===e.type&&t.push("type:number"),e.decimals&&t.push("decimals:"+e.decimals),e.locale&&t.push("locale:"+e.locale),e.showColTotal&&t.push("showColTotal:true"),e.showRowTotal&&t.push("showRowTotal:true"),e.key+": "+e.sourceHeader+(t.length?" ["+t.join("; ")+"]":"")}).join("; "),a=e.columns.some(function(e){return e.agg}),r=e.columns.filter(function(e){return e.agg}).map(function(e){return e.sourceHeader+": "+e.agg}).join("; ");t.push("    "+e.name+": {\n      columns: \""+n.replace(/"/g,'\\"')+'\",\n      tfoot: '+!!e.tfoot+',\n      locale: \"'+(e.locale||"en-CA")+'\"'+(e.groupBy?',\n      groupBy: "'+e.groupBy+'"':"")+(a?',\n      agg: "'+r+'"':"")+(e.pager?',\n      pager: { enabled: true, rowsPerPage: '+(+e.rowsPerPage||10)+' }':"")+"\n    }")}}),t.join(",\n")},g=function(){var t=[];return e.filters.forEach(function(e){e.table&&e.column&&("rowClick"===e.trigger?t.push('    { table: "'+e.table+'", sourceTable: "'+(e.sourceTable||"")+'", sourceColumn: "'+(e.sourceColumn||"")+'", column: "'+e.column+'", trigger: "rowClick" }'):t.push('    { table: "'+e.table+'", select: "'+(e.select||"")+'", column: "'+e.column+'"'+(e.static?", static: true":"")+' }'))}),t.join(",\n")},y=function(){var t=[];return e.metrics.forEach(function(e){e.key&&e.column&&t.push('    '+e.key+': { column: "'+e.column+'", agg: "'+(e.agg||"count")+'" }')}),t.join(",\n")},b=function(){var t=[];return e.ops.forEach(function(e){e.key&&e.left&&e.right&&t.push('    '+e.key+': { op: "'+(e.op||"divide")+'", left: "'+e.left+'", right: "'+e.right+'"'+(null!=e.decimals?', decimals: '+e.decimals:"")+(""!==e.multiplyBy&&null!=e.multiplyBy?', multiplyBy: '+e.multiplyBy:"")+' }')}),t.join(",\n")},w=function(){var t='window.CSVTABLE_CONFIG = {\n  source: "'+(n("sourceInput").value||"#source-data")+'",\n  tables: {\n'+h()+'\n  }';y()&&(t+=',\n  sourceMetrics: {\n'+y()+'\n  }'),b()&&(t+=',\n  sourceMetricOps: {\n'+b()+'\n  }');var a=g();a&&(t+=',\n  filters: [\n'+a+'\n  ]'),t+='\n  hooks: {\n    onFilter: function(e) {\n      // e.tableName, e.matchCount, e.filters\n      // e.sourceMetrics, e.sourceMetricOps\n    },\n    onRender: function(e) {\n      // e.tableName, e.rowCount, e.data\n      // e.sourceMetrics, e.sourceMetricOps\n    }\n  }\n};',n("configOut").textContent=t,n("hooksOut").textContent='Available hook payload fields:\n- table hooks: onFilter(e), onRender(e)\n- e.tableName\n- e.filters (onFilter only)\n- e.matchCount (onFilter only)\n- e.rowCount (onRender only)\n- e.data (onRender only)\n- e.sourceMetrics (source KPI aggregates)\n- e.sourceMetricOps (source KPI operations)',n("attrsOut").textContent='Select filter wiring:\n<select id="region_select" data-filter-table="AssetDetail" data-filter-column="Region"></select>\n\nReset button:\n<button type="reset">Reset filters</button>\n\nDownload buttons:\n<button type="download-source">Download source CSV</button>\n<button type="download-AssetDetail">Download AssetDetail CSV</button>\n\nSortable header example:\n<th class="sortable" data-sort-type="number">m2r</th>\n\nKPI tags:\n<span>{source:totalUniqueAOID}</span>\n<span>{source:m2rPerAoid}</span>'},x=function(t){for(var n=t.target.closest(".table-card"),a=n&&Array.from(n.parentNode.children).indexOf(n),r=t.target.getAttribute("data-act"),o=t.target.getAttribute("data-ti"),i=t.target.getAttribute("data-ci"),d=t.target.getAttribute("data-i");"add-col"===r&&(e.tables[o].columns.push({key:"col"+(e.tables[o].columns.length+1),sourceHeader:e.headers[0]||"",type:"text",decimals:0,locale:"",agg:"",showColTotal:!1,showRowTotal:!1,sortable:!1}),s()),"del-col"===r&&(e.tables[o].columns.splice(i,1),s()),"del-table"===r&&(e.tables.splice(o,1),s(),l()),"del-filter"===r&&(e.filters.splice(d,1),l()),"del-metric"===r&&(e.metrics.splice(d,1),c(),u()),"del-op"===r&&(e.ops.splice(d,1),u()),n&&t.target.matches("input,select");){var m=t.target.getAttribute("data-k"),p=t.target.type==="checkbox"?t.target.checked:t.target.value,v=t.target.closest(".col-row"),f=v&&Array.from(v.parentNode.children).indexOf(v);if(v)e.tables[a].columns[f][m]=p;else if(t.target.closest(".filter-row")){var h=t.target.closest(".filter-row"),g=Array.from(h.parentNode.children).indexOf(h);e.filters[g][m]=p}else if(t.target.closest(".metric-row")){var y=t.target.closest(".metric-row"),b=Array.from(y.parentNode.children).indexOf(y);e.metrics[b][m]=p}else if(t.target.closest(".op-row")){var x=t.target.closest(".op-row"),k=Array.from(x.parentNode.children).indexOf(x);e.ops[k][m]=p}else n&&e.tables[a][m]=p;break}},k=function(){i(n("headersInput").value),f(),w()};n("parseBtn").addEventListener("click",k),n("addTableBtn").addEventListener("click",function(){e.tables.push({name:"Table"+(e.tables.length+1),groupBy:"",locale:"en-CA",tfoot:!0,pager:!1,rowsPerPage:10,columns:[{key:"col1",sourceHeader:e.headers[0]||"",type:"text",decimals:0,locale:"",agg:"",showColTotal:!1,showRowTotal:!1,sortable:!1}]}),s(),l()}),n("addFilterBtn").addEventListener("click",function(){e.filters.push({table:e.tables[0]&&e.tables[0].name||"",select:"region_select",column:e.headers[0]||"",static:!1,trigger:"",sourceTable:"",sourceColumn:""}),l()}),n("addMetricBtn").addEventListener("click",function(){e.metrics.push({key:"metric"+(e.metrics.length+1),column:e.headers[0]||"",agg:"count"}),c(),u()}),n("addOpBtn").addEventListener("click",function(){e.ops.push({key:"op"+(e.ops.length+1),op:"divide",left:e.metrics[0]&&e.metrics[0].key||"",right:e.metrics[1]&&e.metrics[1].key||e.metrics[0]&&e.metrics[0].key||"",decimals:2,multiplyBy:""}),u()}),document.body.addEventListener("click",x),document.body.addEventListener("change",x),n("generateBtn").addEventListener("click",w),n("headersInput").value="AOID,Region,Asset Name,m2r,Year,ContractID",k()}();</script>
+</body>
+</html>

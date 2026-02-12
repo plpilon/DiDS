@@ -16,6 +16,7 @@
 - Supports template-driven `<tbody>` and `<tfoot>` rows so you can style each cell with your own classes
 - Supports config override from `window.CSVTABLE_CONFIG` in host HTML
 - Supports grouping and aggregation (`sum`, `count`, `mean`, `min`, `max`, `nunique`)
+- Supports source-level metrics and source metric operations for KPI cards
 - Supports click sorting on host `<th class="sortable">` headers
 - Supports locale based number formatting using `Intl.NumberFormat`
 - Resolves display tags like `{TableName:col1Total}` in page text
@@ -27,6 +28,7 @@
 - `test.html`: browser test page with 13 checks and PASS or FAIL output
 - `example.html`: dashboard style usage example
 - `Instructions.md`: usage guide with mapping, config, filter wiring, and value tag examples
+- `config-assistant.html`: rules based GUI helper that generates config, hooks, and wiring snippets
 
 ## Quick start
 
@@ -81,6 +83,32 @@ Example:
 <button type="download-AssetDetail">Download AssetDetail CSV</button>
 ```
 
+<<<<<<< codex/update-readme.md-and-instructions.md-7k3rkm
+
+## Source metrics for KPIs
+
+You can configure source-level metrics from raw CSV columns and optional operations between those metrics.
+
+```html
+<span>Total AOID: {source:totalUniqueAOID}</span>
+<span>Total m2r: {source:sourceM2RSum}</span>
+<span>m2r per AOID: {source:m2rPerAoid}</span>
+```
+
+```js
+window.CSVTABLE_CONFIG = {
+  sourceMetrics: {
+    totalUniqueAOID: { column: "AOID", agg: "nunique" },
+    sourceM2RSum: { column: "m2r", agg: "sum" }
+  },
+  sourceMetricOps: {
+    m2rPerAoid: { op: "divide", left: "sourceM2RSum", right: "totalUniqueAOID", decimals: 2 }
+  }
+};
+```
+
+=======
+>>>>>>> main
 ## Validation
 
 - Syntax check:

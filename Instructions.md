@@ -453,3 +453,40 @@ This section summarizes where table interactivity and filter button behavior are
 - Static select options are preserved with `{ static: true }`.
 - Global reset uses any `<button type="reset">` and clears select filters, row-click filters, and pager state.
 - CSV export uses buttons with `type="download-source"` and `type="download-TableName"`.
+<<<<<<< codex/update-readme.md-and-instructions.md-7k3rkm
+
+## 19) Source metrics and operations for KPI cards
+
+You can compute metrics directly from source CSV columns and reference them in display tags.
+
+```js
+sourceMetrics: {
+  totalUniqueAOID: { column: "AOID", agg: "nunique" },
+  totalUniqueContractID: { column: "ContractID", agg: "nunique" },
+  sourceM2RSum: { column: "m2r", agg: "sum" }
+},
+sourceMetricOps: {
+  m2rPerAoid: { op: "divide", left: "sourceM2RSum", right: "totalUniqueAOID", decimals: 2 },
+  aoidPctExample: { op: "divide", left: "totalUniqueAOID", right: "totalUniqueContractID", multiplyBy: 100, decimals: 1 }
+}
+```
+
+Supported `sourceMetrics` aggregations: `sum`, `count`, `mean`, `avg`, `min`, `max`, `nunique`.
+
+Supported `sourceMetricOps` operations: `add`, `subtract`, `multiply`, `divide`.
+
+Use tags anywhere in text nodes:
+
+- `{source:totalUniqueAOID}`
+- `{source:sourceM2RSum}`
+- `{source:m2rPerAoid}`
+
+Notes:
+
+- source metrics are computed from the full source CSV dataset
+- source metric operations run on source metric outputs
+- division by zero resolves to `0`
+- these values are also passed to hooks as `sourceMetrics` and `sourceMetricOps`
+
+=======
+>>>>>>> main
