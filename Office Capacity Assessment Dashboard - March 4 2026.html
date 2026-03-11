@@ -11620,13 +11620,13 @@
                         r.cells[5].textContent.replace(/\u00A0/g, " ").trim().toUpperCase() === "OI_TOTAL"
                     );
 
-                    // floorsTable columns: [6]PARTNER [7]OI [8]m2r/FTE [9]FTE [10]m2r [11]Fit-Up [12]WP [13-16]Scen A-D
+                    // floorsTable columns: [6]PARTNER [7]OI [8]m2r [9]FTE [10]m2r/FTE [11]Fit-Up [12]WP [13-16]Scen A-D
                     // Group by partner so each partner appears only once
                     const partnerMap = new Map();
                     oiRows.forEach((r) => {
                         const partnerHtml = (r.cells[6].innerHTML || "").trim();
-                        const partnerKey = partnerHtml || "Unknown";
-                        const m2r   = parseNumber(r.cells[10].textContent);
+                        const partnerKey = partnerHtml.replace(/&nbsp;/g, " ").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() || "Unknown";
+                        const m2r   = parseNumber(r.cells[8].textContent);
                         const fte   = parseNumber(r.cells[9].textContent);
                         const fitup = (r.cells[11].textContent || "").trim();
                         const wp    = parseNumber(r.cells[12].textContent);
@@ -11710,7 +11710,7 @@
                         const floorLabel = r.cells[5].textContent.trim();
                         const partnerHtml = (r.cells[6].innerHTML || "").trim() || "Vacant";
                         const oi = (r.cells[7] ? r.cells[7].textContent.trim() : "");
-                        const m2r = parseNumber(r.cells[10].textContent);
+                        const m2r = parseNumber(r.cells[8].textContent);
                         if (!floorLabel) return;
                         if (!floorsMap.has(floorLabel)) {
                             floorsMap.set(floorLabel, { floor: floorLabel, totalM2r: 0, partners: [], hasAnyRow: true });
@@ -11768,12 +11768,7 @@
                 function renderFloorStacking(aoid, assetName) {
                     if (!stackContainer || !legendContainer) return;
                     const floors = getFloorsForStacking(aoid);
-                    const BAR_FULL_PX = 300; const STEP = 1 / 3; const BAR_STEP_PX = BAR_FULL_PX * STEP;
-                    function snapUpToThird(ratio) {
-                        if (!Number.isFinite(ratio) || ratio <= 0) return 0;
-                        const snapped = Math.ceil(ratio / STEP) * STEP;
-                        return Math.min(1, snapped);
-                    }
+                    const BAR_FULL_PX = 300;
                     const maxFloorM2r = Math.max(0, ...floors.map((f) => Number(f.totalM2r) || 0));
                     stackContainer.innerHTML = "<h3>Building View</h3>";
                     legendContainer.innerHTML = "";
@@ -11783,11 +11778,10 @@
                     floors.forEach((floorObj) => {
                         const floorRow = document.createElement("div"); floorRow.className = "floor-row";
                         const bar = document.createElement("div"); bar.className = "floor-bar";
-                        const ratio = maxFloorM2r > 0 ? floorObj.totalM2r / maxFloorM2r : 0;
-                        let snapped = snapUpToThird(ratio);
-                        if ((Number(floorObj.totalM2r) || 0) <= 0) snapped = STEP;
-                        const steps = Math.ceil(snapped / STEP);
-                        const px = Math.max(0, Math.min(BAR_FULL_PX, Math.round(steps * BAR_STEP_PX)));
+                        const floorM2r = Number(floorObj.totalM2r) || 0;
+                        const px = maxFloorM2r > 0
+                            ? Math.max(1, Math.round((floorM2r / maxFloorM2r) * BAR_FULL_PX))
+                            : Math.round(BAR_FULL_PX / 3);
                         bar.style.flex = `0 0 ${px}px`; bar.style.width = `${px}px`; bar.style.maxWidth = `${px}px`;
 
                         floorObj.partners.forEach((p, idx) => {
@@ -11892,6 +11886,7 @@
 
                 function resetSelectionAndCollapse() {
                     if (selectedRow) { selectedRow.classList.remove("selected-row"); selectedRow = null; }
+                    if (typeof window._syncOIHighlight === "function") window._syncOIHighlight(null);
                     clearDetails(); detailsPanel.hidden = true; scrollToDashboardSection();
                 }
 
@@ -11910,6 +11905,7 @@
                     renderFloorStacking(aoid, asset);
                     openDetailsPanel();
                     detailsPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+                    if (typeof window._syncOIHighlight === "function") window._syncOIHighlight(aoid);
                 }
 
                 Array.from(invBody.rows).forEach((row) => row.addEventListener("click", () => handleInventoryRowClick(row)));
@@ -12144,6 +12140,14 @@
                 // Wire OI pager buttons
                 if (oiPrevBtn) oiPrevBtn.addEventListener("click", function () { oiCurrentPage--; renderOIPage(); });
                 if (oiNextBtn) oiNextBtn.addEventListener("click", function () { oiCurrentPage++; renderOIPage(); });
+
+                // Expose global to sync highlight from the main-table click handler
+                window._syncOIHighlight = function (aoid) {
+                    if (selectedOIRow) { selectedOIRow.classList.remove("selected-row"); selectedOIRow = null; }
+                    if (!oiTbody || !aoid) return;
+                    const matchRow = oiTbody.querySelector('tr[data-aoid="' + aoid + '"]');
+                    if (matchRow) { selectedOIRow = matchRow; matchRow.classList.add("selected-row"); }
+                };
 
                 // Wire OI row click → open collapsibleDetailsPanel for that asset
                 let selectedOIRow = null;
