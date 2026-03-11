@@ -2160,6 +2160,8 @@
                 <option>Western</option>
                 <option>Pacific</option>
             </select>
+            <label for="oiSearch">Search:</label>
+            <input type="search" id="oiSearch" placeholder="Search asset or OI&hellip;" />
         </div>
         <div class="table-wrapper">
             <table class="detailsTable" id="oiDetailsTable">
@@ -2167,6 +2169,7 @@
                     <tr>
                         <th rowspan="2" class="sortable">Region</th>
                         <th rowspan="2" class="sortable">Asset Name</th>
+                        <th rowspan="2" class="sortable">OI</th>
                         <th rowspan="2" class="sortable" data-sort-type="number">m2r</th>
                         <th rowspan="2" class="sortable" data-sort-type="number">
                             <abbr class="tooltip" data-tooltip="The number of FTEs accommodated within an asset, as per active Lease-Out Contracts (also known as Occupancy Instruments).">FTE (incl. 10% reduction)</abbr>
@@ -5341,6 +5344,12 @@
 
                 Array.from(invBody.rows).forEach((row) => row.addEventListener("click", () => handleInventoryRowClick(row)));
                 if (closeBtn) closeBtn.addEventListener("click", resetSelectionAndCollapse);
+
+                window._openDetailsByAOID = function(aoid) {
+                    const rows = Array.from(invBody.rows);
+                    const matchRow = rows.find(function(r) { return r.cells[1] && r.cells[1].textContent.trim() === aoid; });
+                    if (matchRow) handleInventoryRowClick(matchRow, { toggleIfSame: false });
+                };
                 if (resetFiltersBtn) resetFiltersBtn.addEventListener("click", resetSelectionAndCollapse);
 
                 if (partnerSelect) {
@@ -5373,6 +5382,7 @@
                 const partnerSelect = document.getElementById("partnerFilter");
                 const resetBtn = document.getElementById("resetFilters");
                 const oiTable = document.getElementById("oiDetailsTable");
+                const oiSearchInput = document.getElementById("oiSearch");
 
                 const OI_ROWS_PER_PAGE = 10;
                 let oiAllRows = [];
@@ -5406,6 +5416,7 @@
                         const ratio = parseOINum(r.cells[9] ? r.cells[9].textContent : "");
                         rows.push({
                             region:    (r.cells[0] ? r.cells[0].textContent.trim() : ""),
+                            aoid:      (r.cells[1] ? r.cells[1].textContent.trim() : ""),
                             assetName: (r.cells[2] ? r.cells[2].textContent.trim() : ""),
                             m2r:    m2r,
                             fte:    fte,
@@ -5421,10 +5432,13 @@
                     return rows;
                 }
 
-                function applyOIRegionFilter() {
+                function applyOIFilters() {
                     const region = oiRegionFilter ? oiRegionFilter.value.trim() : "";
+                    const query = oiSearchInput ? oiSearchInput.value.trim().toLowerCase() : "";
                     oiFilteredRows = oiAllRows.filter(function (r) {
-                        return !region || r.region === region;
+                        if (region && r.region !== region) return false;
+                        if (query && !r.assetName.toLowerCase().includes(query) && !r.aoid.toLowerCase().includes(query)) return false;
+                        return true;
                     });
                     oiCurrentPage = 1;
                     renderOIPage();
@@ -5448,9 +5462,12 @@
 
                     slice.forEach(function (d) {
                         const tr = document.createElement("tr");
+                        tr.dataset.aoid = d.aoid;
+                        tr.style.cursor = "pointer";
                         const cols = [
                             { text: d.region,              sort: null },
                             { text: d.assetName,           sort: null },
+                            { text: d.aoid,                sort: null },
                             { text: fmt(d.m2r, 1),         sort: d.m2r },
                             { text: fmt(d.fte, 0),         sort: d.fte },
                             { text: Number.isFinite(d.ratio) ? d.ratio.toFixed(1) : "0.0", sort: d.ratio },
@@ -5470,8 +5487,8 @@
                         oiTbody.appendChild(tr);
                     });
 
-                    // Colour negative scenario columns (indices 7-10 in this table)
-                    if (typeof applyNegativeStyling === "function") applyNegativeStyling(oiTbody, [7, 8, 9, 10]);
+                    // Colour negative scenario columns (indices 8-11 in this table)
+                    if (typeof applyNegativeStyling === "function") applyNegativeStyling(oiTbody, [8, 9, 10, 11]);
 
                     if (oiPageInfoEl) {
                         oiPageInfoEl.textContent = total === 0
@@ -5486,7 +5503,8 @@
                     oiAllRows = buildOIRows(partner);
                     if (oiPartnerName) oiPartnerName.textContent = partner;
                     if (oiRegionFilter) oiRegionFilter.value = "";
-                    applyOIRegionFilter();
+                    if (oiSearchInput) oiSearchInput.value = "";
+                    applyOIFilters();
                     if (oiPanel) oiPanel.hidden = false;
                     // Scroll to the OI panel
                     if (oiPanel) oiPanel.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -5497,6 +5515,7 @@
                     if (oiTbody) oiTbody.innerHTML = "";
                     if (oiPartnerName) oiPartnerName.textContent = "";
                     if (oiRegionFilter) oiRegionFilter.value = "";
+                    if (oiSearchInput) oiSearchInput.value = "";
                     oiAllRows = [];
                     oiFilteredRows = [];
                     oiCurrentPage = 1;
@@ -5515,14 +5534,29 @@
                     });
                 }
 
-                // Wire OI region sub-filter
+                // Wire OI region sub-filter and search input
                 if (oiRegionFilter) {
-                    oiRegionFilter.addEventListener("change", applyOIRegionFilter);
+                    oiRegionFilter.addEventListener("change", applyOIFilters);
+                }
+                if (oiSearchInput) {
+                    oiSearchInput.addEventListener("input", applyOIFilters);
                 }
 
                 // Wire OI pager buttons
                 if (oiPrevBtn) oiPrevBtn.addEventListener("click", function () { oiCurrentPage--; renderOIPage(); });
                 if (oiNextBtn) oiNextBtn.addEventListener("click", function () { oiCurrentPage++; renderOIPage(); });
+
+                // Wire OI row click → open collapsibleDetailsPanel for that asset
+                if (oiTbody) {
+                    oiTbody.addEventListener("click", function (e) {
+                        const row = e.target.closest("tr");
+                        if (!row) return;
+                        const aoid = row.dataset.aoid;
+                        if (aoid && typeof window._openDetailsByAOID === "function") {
+                            window._openDetailsByAOID(aoid);
+                        }
+                    });
+                }
 
                 // Wire reset button to hide OI panel
                 if (resetBtn) {
@@ -5537,9 +5571,9 @@
                 // Wire column sorting for the OI table
                 if (oiTable) {
                     // Column index → data field mapping (matches thead structure)
-                    // Row 0 (rowspan=2): Region(0) | AssetName(1) | m2r(2) | FTE(3) | m2r/FTE(4) | Fitup(5) | WP(6) | [Scenarios colspan=4]
-                    // Row 1 (sub-header): ScenA(7) | ScenB(8) | ScenC(9) | ScenD(10)
-                    const COL_KEYS = ["region", "assetName", "m2r", "fte", "ratio", "fitup", "wp", "scenA", "scenB", "scenC", "scenD"];
+                    // Row 0 (rowspan=2): Region(0) | AssetName(1) | OI(2) | m2r(3) | FTE(4) | m2r/FTE(5) | Fitup(6) | WP(7) | [Scenarios colspan=4]
+                    // Row 1 (sub-header): ScenA(8) | ScenB(9) | ScenC(10) | ScenD(11)
+                    const COL_KEYS = ["region", "assetName", "aoid", "m2r", "fte", "ratio", "fitup", "wp", "scenA", "scenB", "scenC", "scenD"];
 
                     oiTable.querySelectorAll("th.sortable").forEach(function (th) {
                         th.style.cursor = "pointer";
@@ -5549,9 +5583,9 @@
                             const rowIndex = allHeaderRows.indexOf(row);
                             let colIndex;
                             if (rowIndex === 1) {
-                                // Sub-header row — scenario columns start at index 7
+                                // Sub-header row — scenario columns start at index 8
                                 const cellIndex = Array.from(row.children).indexOf(th);
-                                colIndex = 7 + cellIndex;
+                                colIndex = 8 + cellIndex;
                             } else {
                                 // Main header row — compute index accounting for colspan
                                 let idx = 0;
