@@ -1651,6 +1651,38 @@
             outline: 2px solid var(--color-focus, #005ea5);
             outline-offset: 2px;
         }
+
+        /*==========================================================================OI DETAILS PANEL==========================================================================*/
+        #oiDetailsPanel {
+            position: relative;
+            margin-top: 24px;
+            border: 1px var(--color-grayscale-100) solid;
+            padding: 20px;
+            border-radius: 4px;
+        }
+
+        #oiDetailsPanel .details-header h2 {
+            margin: 0;
+            font-size: 1.25rem;
+        }
+
+        #oiDetailsPanel .oi-region-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            font-size: 0.85rem;
+        }
+
+        #oiDetailsPanel .oi-region-row label {
+            font-weight: 600;
+            color: var(--color-grayscale-700);
+        }
+
+        #oiDetailsPanel .oi-region-row select {
+            width: auto;
+            display: inline-block;
+        }
     </style>
 </head>
 
@@ -2111,6 +2143,54 @@
         </div>
         <div class="back-to-top-wrap">
             <a href="#top" class="top">Back to top</a>
+        </div>
+    </section>
+    <section id="oiDetailsPanel" hidden>
+        <header class="details-header">
+            <h2>OI Details &mdash; Partner: <span id="oiDetailsPartnerName"></span></h2>
+        </header>
+        <div class="oi-region-row">
+            <label for="oiRegionFilter">Filter by Region:</label>
+            <select id="oiRegionFilter">
+                <option value="">All Regions</option>
+                <option>Atlantic</option>
+                <option>Quebec</option>
+                <option>NCA</option>
+                <option>Ontario</option>
+                <option>Western</option>
+                <option>Pacific</option>
+            </select>
+        </div>
+        <div class="table-wrapper">
+            <table class="detailsTable" id="oiDetailsTable">
+                <thead>
+                    <tr>
+                        <th rowspan="2" class="sortable">Region</th>
+                        <th rowspan="2" class="sortable">Asset Name</th>
+                        <th rowspan="2" class="sortable" data-sort-type="number">m2r</th>
+                        <th rowspan="2" class="sortable" data-sort-type="number">
+                            <abbr class="tooltip" data-tooltip="The number of FTEs accommodated within an asset, as per active Lease-Out Contracts (also known as Occupancy Instruments).">FTE (incl. 10% reduction)</abbr>
+                        </th>
+                        <th rowspan="2" class="sortable" data-sort-type="number">m2r/FTE</th>
+                        <th rowspan="2">Fit-up</th>
+                        <th rowspan="2" class="sortable" data-sort-type="number">Workpoints</th>
+                        <th colspan="4">Scenarios</th>
+                    </tr>
+                    <tr>
+                        <th class="sortable" data-sort-type="number">A - Unassigned</th>
+                        <th class="sortable" data-sort-type="number">B - 60/40</th>
+                        <th class="sortable" data-sort-type="number">C - 80/20</th>
+                        <th class="sortable" data-sort-type="number">D - Assigned</th>
+                    </tr>
+                </thead>
+                <tbody id="oiDetailsTbody">
+                </tbody>
+            </table>
+        </div>
+        <div class="table-pager" id="oiPager">
+            <button id="oiPrevPage" class="button button--ghost">Previous</button>
+            <span id="oiPageInfo" class="table-pager-info"></span>
+            <button id="oiNextPage" class="button button--ghost">Next</button>
         </div>
     </section>
     <section id="collapsibleDetailsPanel" hidden>
@@ -5203,6 +5283,237 @@
             });
         </script>
 
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                const floorsTable = document.getElementById("floorsTable");
+                const oiPanel = document.getElementById("oiDetailsPanel");
+                const oiTbody = document.getElementById("oiDetailsTbody");
+                const oiPartnerName = document.getElementById("oiDetailsPartnerName");
+                const oiRegionFilter = document.getElementById("oiRegionFilter");
+                const oiPrevBtn = document.getElementById("oiPrevPage");
+                const oiNextBtn = document.getElementById("oiNextPage");
+                const oiPageInfoEl = document.getElementById("oiPageInfo");
+                const partnerSelect = document.getElementById("partnerFilter");
+                const resetBtn = document.getElementById("resetFilters");
+                const oiTable = document.getElementById("oiDetailsTable");
+
+                const OI_ROWS_PER_PAGE = 10;
+                let oiAllRows = [];
+                let oiFilteredRows = [];
+                let oiCurrentPage = 1;
+                const oiSortState = {};
+
+                function parseOINum(text) {
+                    if (text == null) return 0;
+                    let s = String(text)
+                        .replace(/\u00A0/g, " ")
+                        .replace(/,/g, "")
+                        .replace(/[\u2212\u2013\u2014]/g, "-")
+                        .trim();
+                    if (/^\(.*\)$/.test(s)) s = "-" + s.slice(1, -1);
+                    s = s.replace(/[^0-9.\-]/g, "");
+                    const n = Number(s);
+                    return Number.isFinite(n) ? n : 0;
+                }
+
+                function buildOIRows(partner) {
+                    if (!floorsTable) return [];
+                    const rows = [];
+                    Array.from(floorsTable.tBodies[0].rows).forEach(function (r) {
+                        const floor = (r.cells[5] ? r.cells[5].textContent : "").trim().toUpperCase();
+                        if (floor !== "OI_TOTAL") return;
+                        const partnerCell = (r.cells[6] ? r.cells[6].textContent : "").replace(/\s+/g, " ").trim();
+                        if (partnerCell !== partner) return;
+                        const m2r = parseOINum(r.cells[7] ? r.cells[7].textContent : "");
+                        const fte = parseOINum(r.cells[8] ? r.cells[8].textContent : "");
+                        const ratio = parseOINum(r.cells[9] ? r.cells[9].textContent : "");
+                        rows.push({
+                            region:    (r.cells[0] ? r.cells[0].textContent.trim() : ""),
+                            assetName: (r.cells[2] ? r.cells[2].textContent.trim() : ""),
+                            m2r:    m2r,
+                            fte:    fte,
+                            ratio:  ratio !== 0 ? ratio : (fte > 0 ? m2r / fte : 0),
+                            fitup:  (r.cells[10] ? r.cells[10].textContent.trim() : ""),
+                            wp:     parseOINum(r.cells[11] ? r.cells[11].textContent : ""),
+                            scenA:  parseOINum(r.cells[12] ? r.cells[12].textContent : ""),
+                            scenB:  parseOINum(r.cells[13] ? r.cells[13].textContent : ""),
+                            scenC:  parseOINum(r.cells[14] ? r.cells[14].textContent : ""),
+                            scenD:  parseOINum(r.cells[15] ? r.cells[15].textContent : ""),
+                        });
+                    });
+                    return rows;
+                }
+
+                function applyOIRegionFilter() {
+                    const region = oiRegionFilter ? oiRegionFilter.value.trim() : "";
+                    oiFilteredRows = oiAllRows.filter(function (r) {
+                        return !region || r.region === region;
+                    });
+                    oiCurrentPage = 1;
+                    renderOIPage();
+                }
+
+                function renderOIPage() {
+                    if (!oiTbody) return;
+                    const total = oiFilteredRows.length;
+                    const totalPages = total === 0 ? 1 : Math.ceil(total / OI_ROWS_PER_PAGE);
+                    if (oiCurrentPage > totalPages) oiCurrentPage = totalPages;
+                    if (oiCurrentPage < 1) oiCurrentPage = 1;
+
+                    oiTbody.innerHTML = "";
+                    const start = (oiCurrentPage - 1) * OI_ROWS_PER_PAGE;
+                    const slice = oiFilteredRows.slice(start, start + OI_ROWS_PER_PAGE);
+
+                    function fmt(n, d) {
+                        d = d === undefined ? 0 : d;
+                        return Number.isFinite(n) ? n.toLocaleString(undefined, { maximumFractionDigits: d }) : "";
+                    }
+
+                    slice.forEach(function (d) {
+                        const tr = document.createElement("tr");
+                        const cols = [
+                            { text: d.region,              sort: null },
+                            { text: d.assetName,           sort: null },
+                            { text: fmt(d.m2r, 1),         sort: d.m2r },
+                            { text: fmt(d.fte, 0),         sort: d.fte },
+                            { text: Number.isFinite(d.ratio) ? d.ratio.toFixed(1) : "0.0", sort: d.ratio },
+                            { text: d.fitup,               sort: null },
+                            { text: fmt(d.wp, 0),          sort: d.wp },
+                            { text: fmt(d.scenA, 0),       sort: d.scenA },
+                            { text: fmt(d.scenB, 0),       sort: d.scenB },
+                            { text: fmt(d.scenC, 0),       sort: d.scenC },
+                            { text: fmt(d.scenD, 0),       sort: d.scenD },
+                        ];
+                        cols.forEach(function (c) {
+                            const td = document.createElement("td");
+                            td.textContent = c.text;
+                            if (c.sort !== null && Number.isFinite(c.sort)) td.dataset.sort = String(c.sort);
+                            tr.appendChild(td);
+                        });
+                        oiTbody.appendChild(tr);
+                    });
+
+                    // Colour negative scenario columns (indices 7-10 in this table)
+                    if (typeof applyNegativeStyling === "function") applyNegativeStyling(oiTbody, [7, 8, 9, 10]);
+
+                    if (oiPageInfoEl) {
+                        oiPageInfoEl.textContent = total === 0
+                            ? "0 rows"
+                            : "Page " + oiCurrentPage + " of " + totalPages + " \u2022 " + total.toLocaleString() + " rows";
+                    }
+                    if (oiPrevBtn) oiPrevBtn.disabled = oiCurrentPage <= 1 || total === 0;
+                    if (oiNextBtn) oiNextBtn.disabled = oiCurrentPage >= totalPages || total === 0;
+                }
+
+                function showOIPanel(partner) {
+                    oiAllRows = buildOIRows(partner);
+                    if (oiPartnerName) oiPartnerName.textContent = partner;
+                    if (oiRegionFilter) oiRegionFilter.value = "";
+                    applyOIRegionFilter();
+                    if (oiPanel) oiPanel.hidden = false;
+                    // Scroll to the OI panel
+                    if (oiPanel) oiPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+
+                function hideOIPanel() {
+                    if (oiPanel) oiPanel.hidden = true;
+                    if (oiTbody) oiTbody.innerHTML = "";
+                    if (oiPartnerName) oiPartnerName.textContent = "";
+                    if (oiRegionFilter) oiRegionFilter.value = "";
+                    oiAllRows = [];
+                    oiFilteredRows = [];
+                    oiCurrentPage = 1;
+                }
+
+                // Wire partner filter change
+                if (partnerSelect) {
+                    partnerSelect.addEventListener("change", function () {
+                        const val = partnerSelect.value.trim();
+                        const isAll = !val || val.toLowerCase() === "all";
+                        if (isAll) {
+                            hideOIPanel();
+                        } else {
+                            showOIPanel(val);
+                        }
+                    });
+                }
+
+                // Wire OI region sub-filter
+                if (oiRegionFilter) {
+                    oiRegionFilter.addEventListener("change", applyOIRegionFilter);
+                }
+
+                // Wire OI pager buttons
+                if (oiPrevBtn) oiPrevBtn.addEventListener("click", function () { oiCurrentPage--; renderOIPage(); });
+                if (oiNextBtn) oiNextBtn.addEventListener("click", function () { oiCurrentPage++; renderOIPage(); });
+
+                // Wire reset button to hide OI panel
+                if (resetBtn) {
+                    resetBtn.addEventListener("click", hideOIPanel);
+                }
+
+                // Wire Escape key to hide OI panel
+                document.addEventListener("keydown", function (e) {
+                    if (e.key === "Escape") hideOIPanel();
+                });
+
+                // Wire column sorting for the OI table
+                if (oiTable) {
+                    // Column index → data field mapping (matches thead structure)
+                    // Row 0 (rowspan=2): Region(0) | AssetName(1) | m2r(2) | FTE(3) | m2r/FTE(4) | Fitup(5) | WP(6) | [Scenarios colspan=4]
+                    // Row 1 (sub-header): ScenA(7) | ScenB(8) | ScenC(9) | ScenD(10)
+                    const COL_KEYS = ["region", "assetName", "m2r", "fte", "ratio", "fitup", "wp", "scenA", "scenB", "scenC", "scenD"];
+
+                    oiTable.querySelectorAll("th.sortable").forEach(function (th) {
+                        th.style.cursor = "pointer";
+                        th.addEventListener("click", function () {
+                            const row = th.parentElement;
+                            const allHeaderRows = Array.from(row.parentElement.querySelectorAll("tr"));
+                            const rowIndex = allHeaderRows.indexOf(row);
+                            let colIndex;
+                            if (rowIndex === 1) {
+                                // Sub-header row — scenario columns start at index 7
+                                const cellIndex = Array.from(row.children).indexOf(th);
+                                colIndex = 7 + cellIndex;
+                            } else {
+                                // Main header row — compute index accounting for colspan
+                                let idx = 0;
+                                for (const c of Array.from(row.children)) {
+                                    if (c === th) break;
+                                    idx += parseInt(c.getAttribute("colspan") || "1", 10);
+                                }
+                                colIndex = idx;
+                            }
+
+                            const dir = oiSortState[colIndex] === "asc" ? "desc" : "asc";
+                            oiSortState[colIndex] = dir;
+
+                            const key = COL_KEYS[colIndex];
+                            if (key) {
+                                oiFilteredRows.sort(function (a, b) {
+                                    const aVal = a[key];
+                                    const bVal = b[key];
+                                    if (typeof aVal === "number" && typeof bVal === "number") {
+                                        return dir === "asc" ? aVal - bVal : bVal - aVal;
+                                    }
+                                    const aStr = String(aVal || "");
+                                    const bStr = String(bVal || "");
+                                    return dir === "asc" ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
+                                });
+                                oiCurrentPage = 1;
+                                renderOIPage();
+                            }
+
+                            // Update sort direction indicators on th
+                            oiTable.querySelectorAll("th.sortable").forEach(function (t) {
+                                delete t.dataset.sortDir;
+                            });
+                            th.dataset.sortDir = dir;
+                        });
+                    });
+                }
+            });
+        </script>
         <script>
             const openLink = document.getElementById("aboutDashboardLink");
             const modal = document.getElementById("aboutDashboardModal");
