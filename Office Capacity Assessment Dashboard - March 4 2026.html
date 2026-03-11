@@ -4240,6 +4240,14 @@
 
                     currentPage = 1;
                     renderPage();
+
+                    // Hide Region column when a specific region is already selected
+                    const hideRegionCol = !regionIsAll;
+                    const regionTh = table.querySelector("thead tr th:first-child");
+                    if (regionTh) regionTh.style.display = hideRegionCol ? "none" : "";
+                    allRows.forEach(function (row) {
+                        if (row.cells[0]) row.cells[0].style.display = hideRegionCol ? "none" : "";
+                    });
                 }
 
                 // ----------------------------
@@ -5528,9 +5536,20 @@
                     oiCurrentPage = 1;
                 }
 
-                // Wire partner filter change
+                // Wire partner filter change: reset auxiliary selects, close details panel
                 if (partnerSelect) {
                     partnerSelect.addEventListener("change", function () {
+                        // Reset province and address-search in the main table section
+                        const provinceFilterEl = document.getElementById("provinceFilter");
+                        if (provinceFilterEl) { provinceFilterEl.value = ""; provinceFilterEl.dispatchEvent(new Event("change")); }
+                        const addressSearchEl = document.getElementById("addressSearch");
+                        if (addressSearchEl) addressSearchEl.value = "";
+
+                        // Close the collapsible details panel
+                        const detailsPanelEl = document.getElementById("collapsibleDetailsPanel");
+                        if (detailsPanelEl) detailsPanelEl.hidden = true;
+
+                        // Show or hide the OI details panel
                         const val = partnerSelect.value.trim();
                         const isAll = !val || val.toLowerCase() === "all";
                         if (isAll) {
@@ -5538,6 +5557,19 @@
                         } else {
                             showOIPanel(val);
                         }
+                    });
+                }
+
+                // Sync side-panel regionFilter → oiRegionFilter
+                const sideRegionSelect = document.getElementById("regionFilter");
+                if (sideRegionSelect) {
+                    sideRegionSelect.addEventListener("change", function () {
+                        if (!oiRegionFilter) return;
+                        const val = sideRegionSelect.value.trim();
+                        const isAll = !val || val.toLowerCase() === "all";
+                        // Map side-panel region values to oiRegionFilter option values
+                        oiRegionFilter.value = isAll ? "" : val;
+                        applyOIFilters();
                     });
                 }
 
