@@ -11620,39 +11620,50 @@
                         r.cells[5].textContent.replace(/\u00A0/g, " ").trim().toUpperCase() === "OI_TOTAL"
                     );
 
+                    // floorsTable columns: [6]PARTNER [7]OI [8]m2r/FTE [9]FTE [10]m2r [11]Fit-Up [12]WP [13-16]Scen A-D
+                    // Group by partner so each partner appears only once
+                    const partnerMap = new Map();
+                    oiRows.forEach((r) => {
+                        const partnerHtml = (r.cells[6].innerHTML || "").trim();
+                        const partnerKey = partnerHtml || "Unknown";
+                        const m2r   = parseNumber(r.cells[10].textContent);
+                        const fte   = parseNumber(r.cells[9].textContent);
+                        const fitup = (r.cells[11].textContent || "").trim();
+                        const wp    = parseNumber(r.cells[12].textContent);
+                        const sA    = parseNumber(r.cells[13].textContent);
+                        const sB    = parseNumber(r.cells[14].textContent);
+                        const sC    = parseNumber(r.cells[15].textContent);
+                        const sD    = parseNumber(r.cells[16].textContent);
+                        if (!partnerMap.has(partnerKey)) {
+                            partnerMap.set(partnerKey, { partnerHtml, m2r: 0, fte: 0, fitup, wp: 0, sA: 0, sB: 0, sC: 0, sD: 0 });
+                        }
+                        const agg = partnerMap.get(partnerKey);
+                        agg.m2r += m2r; agg.fte += fte; agg.wp += wp;
+                        agg.sA += sA; agg.sB += sB; agg.sC += sC; agg.sD += sD;
+                        if (agg.fitup !== fitup) agg.fitup = "Mixed";
+                    });
+
                     let totalM2R = 0, totalFTE = 0, totalWP = 0;
                     let totalScenA = 0, totalScenB = 0, totalScenC = 0, totalScenD = 0;
 
-                    oiRows.forEach((r) => {
-                        const partnerHtml = (r.cells[6].innerHTML || "").trim();
-                        const m2r = parseNumber(r.cells[8].textContent);
-                        const fte = parseNumber(r.cells[9].textContent);
-                        const ratio = fte > 0 ? m2r / fte : null;
-                        const fitup = (r.cells[11].textContent || "").trim();
-                        const wp = parseNumber(r.cells[12].textContent);
-                        const sA = parseNumber(r.cells[13].textContent);
-                        const sB = parseNumber(r.cells[14].textContent);
-                        const sC = parseNumber(r.cells[15].textContent);
-                        const sD = parseNumber(r.cells[16].textContent);
-
-                        totalM2R += m2r;
-                        totalFTE += fte;
-                        totalWP += wp;
-                        totalScenA += sA; totalScenB += sB; totalScenC += sC; totalScenD += sD;
+                    partnerMap.forEach((p) => {
+                        const ratio = p.fte > 0 ? p.m2r / p.fte : null;
+                        totalM2R += p.m2r; totalFTE += p.fte; totalWP += p.wp;
+                        totalScenA += p.sA; totalScenB += p.sB; totalScenC += p.sC; totalScenD += p.sD;
 
                         const fmt = (n, d = 0) => Number.isFinite(n) ? n.toLocaleString(undefined, { maximumFractionDigits: d }) : "";
                         const tr = document.createElement("tr");
                         const cols = [
-                            { html: partnerHtml || "", sort: null },
-                            { text: fmt(m2r, 1), sort: m2r },
-                            { text: fmt(fte, 0), sort: fte },
+                            { html: p.partnerHtml || "", sort: null },
+                            { text: fmt(p.m2r, 1), sort: p.m2r },
+                            { text: fmt(p.fte, 0), sort: p.fte },
                             { text: ratio != null ? ratio.toFixed(1) : "0.0", sort: ratio },
-                            { text: fitup, sort: null },
-                            { text: fmt(wp, 0), sort: wp },
-                            { text: fmt(sA, 0), sort: sA },
-                            { text: fmt(sB, 0), sort: sB },
-                            { text: fmt(sC, 0), sort: sC },
-                            { text: fmt(sD, 0), sort: sD },
+                            { text: p.fitup, sort: null },
+                            { text: fmt(p.wp, 0), sort: p.wp },
+                            { text: fmt(p.sA, 0), sort: p.sA },
+                            { text: fmt(p.sB, 0), sort: p.sB },
+                            { text: fmt(p.sC, 0), sort: p.sC },
+                            { text: fmt(p.sD, 0), sort: p.sD },
                         ];
                         cols.forEach((c) => {
                             const td = document.createElement("td");
@@ -11698,7 +11709,8 @@
                     rows.forEach((r) => {
                         const floorLabel = r.cells[5].textContent.trim();
                         const partnerHtml = (r.cells[6].innerHTML || "").trim() || "Vacant";
-                        const m2r = parseNumber(r.cells[7].textContent);
+                        const oi = (r.cells[7] ? r.cells[7].textContent.trim() : "");
+                        const m2r = parseNumber(r.cells[10].textContent);
                         if (!floorLabel) return;
                         if (!floorsMap.has(floorLabel)) {
                             floorsMap.set(floorLabel, { floor: floorLabel, totalM2r: 0, partners: [], hasAnyRow: true });
@@ -11706,9 +11718,9 @@
                         const f = floorsMap.get(floorLabel);
                         if (m2r > 0) {
                             f.totalM2r += m2r;
-                            f.partners.push({ partnerHtml, m2r });
+                            f.partners.push({ partnerHtml, oi, m2r });
                         } else {
-                            f.partners.push({ partnerHtml, m2r: 0 });
+                            f.partners.push({ partnerHtml, oi, m2r: 0 });
                         }
                     });
 
@@ -11721,8 +11733,8 @@
                         }
                         f.partners = f.partners
                             .filter((p) => (Number(p.m2r) || 0) > 0)
-                            .map((p) => ({ partnerHtml: p.partnerHtml, m2r: p.m2r, share: p.m2r / total }));
-                        if (!f.partners.length) f.partners = [{ partnerHtml: "Vacant", m2r: 0, share: 1 }];
+                            .map((p) => ({ partnerHtml: p.partnerHtml, oi: p.oi || "", m2r: p.m2r, share: p.m2r / total }));
+                        if (!f.partners.length) f.partners = [{ partnerHtml: "Vacant", oi: "", m2r: 0, share: 1 }];
                         return f;
                     });
 
@@ -11807,7 +11819,8 @@
                                 if (pattern) { seg.style.backgroundImage = pattern; seg.style.backgroundSize = "4px 4px"; }
                             }
                             const partnerLabel = String(key || "").replace(/&nbsp;/g, " ").replace(/<[^>]*>/g, " ").trim();
-                            seg.title = `${String(assetName).trim()} - Floor ${String(floorObj.floor).trim()}\n${partnerLabel}: ${(Number(p.m2r) || 0).toFixed(1)} m²r`;
+                            const oiStr = p.oi ? `\nOI: ${p.oi}` : "";
+                            seg.title = `${String(assetName).trim()} - Floor ${String(floorObj.floor).trim()}\n${partnerLabel}: ${(Number(p.m2r) || 0).toFixed(1)} m²r${oiStr}`;
                             bar.appendChild(seg);
                         });
 
@@ -12133,16 +12146,27 @@
                 if (oiNextBtn) oiNextBtn.addEventListener("click", function () { oiCurrentPage++; renderOIPage(); });
 
                 // Wire OI row click → open collapsibleDetailsPanel for that asset
+                let selectedOIRow = null;
                 if (oiTbody) {
                     oiTbody.addEventListener("click", function (e) {
                         const row = e.target.closest("tr");
                         if (!row) return;
                         const aoid = row.dataset.aoid;
+                        // Highlight selected row
+                        if (selectedOIRow) selectedOIRow.classList.remove("selected-row");
+                        selectedOIRow = row;
+                        row.classList.add("selected-row");
                         if (aoid && typeof window._openDetailsByAOID === "function") {
                             window._openDetailsByAOID(aoid);
                         }
                     });
                 }
+                // Clear OI row highlight when OI panel is hidden
+                const _origHideOIPanel = hideOIPanel;
+                hideOIPanel = function () {
+                    if (selectedOIRow) { selectedOIRow.classList.remove("selected-row"); selectedOIRow = null; }
+                    _origHideOIPanel();
+                };
 
                 // Wire close button to hide OI panel
                 const oiCloseBtn = document.getElementById("oiDetailsCloseBtn");
@@ -12163,7 +12187,7 @@
                     // Column index → data field mapping (matches thead structure)
                     // Row 0 (rowspan=2): Region(0) | AssetName(1) | OI(2) | m2r(3) | FTE(4) | m2r/FTE(5) | Fitup(6) | WP(7) | [Scenarios colspan=4]
                     // Row 1 (sub-header): ScenA(8) | ScenB(9) | ScenC(10) | ScenD(11)
-                    const COL_KEYS = ["region", "assetName", "aoid", "m2r", "fte", "ratio", "fitup", "wp", "scenA", "scenB", "scenC", "scenD"];
+                    const COL_KEYS = ["region", "assetName", "oi", "m2r", "fte", "ratio", "fitup", "wp", "scenA", "scenB", "scenC", "scenD"];
 
                     oiTable.querySelectorAll("th.sortable").forEach(function (th) {
                         th.style.cursor = "pointer";
