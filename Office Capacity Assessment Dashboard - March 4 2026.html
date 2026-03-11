@@ -10794,14 +10794,6 @@
 
                     currentPage = 1;
                     renderPage();
-
-                    // Hide Region column when a specific region is already selected
-                    const hideRegionCol = !regionIsAll;
-                    const regionTh = table.querySelector("thead tr th:first-child");
-                    if (regionTh) regionTh.style.display = hideRegionCol ? "none" : "";
-                    allRows.forEach(function (row) {
-                        if (row.cells[0]) row.cells[0].style.display = hideRegionCol ? "none" : "";
-                    });
                 }
 
                 // ----------------------------
