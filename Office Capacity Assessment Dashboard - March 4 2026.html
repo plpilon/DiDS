@@ -2149,19 +2149,22 @@
         <header class="details-header">
             <h2>OI Details &mdash; Partner: <span id="oiDetailsPartnerName"></span></h2>
         </header>
-        <div class="oi-region-row">
-            <label for="oiRegionFilter">Filter by Region:</label>
-            <select id="oiRegionFilter">
-                <option value="">All Regions</option>
-                <option>Atlantic</option>
-                <option>Quebec</option>
-                <option>NCA</option>
-                <option>Ontario</option>
-                <option>Western</option>
-                <option>Pacific</option>
-            </select>
-            <label for="oiSearch">Search:</label>
-            <input type="search" id="oiSearch" placeholder="Search asset or OI&hellip;" />
+        <div class="table-header-row">
+            <div class="table-header-left">
+                <label for="oiRegionFilter" style="font-weight:600;">Region</label>
+                <select id="oiRegionFilter">
+                    <option value="">All Regions</option>
+                    <option>Atlantic</option>
+                    <option>Quebec</option>
+                    <option>NCA</option>
+                    <option>Ontario</option>
+                    <option>Western</option>
+                    <option>Pacific</option>
+                </select>
+            </div>
+            <div class="table-header-right">
+                <input type="search" id="oiSearch" placeholder="Search asset or OI&hellip;" />
+            </div>
         </div>
         <div class="table-wrapper">
             <table class="detailsTable" id="oiDetailsTable">
@@ -5411,22 +5414,26 @@
                         if (floor !== "OI_TOTAL") return;
                         const partnerCell = (r.cells[6] ? r.cells[6].textContent : "").replace(/\s+/g, " ").trim();
                         if (partnerCell !== partner) return;
-                        const m2r = parseOINum(r.cells[7] ? r.cells[7].textContent : "");
-                        const fte = parseOINum(r.cells[8] ? r.cells[8].textContent : "");
-                        const ratio = parseOINum(r.cells[9] ? r.cells[9].textContent : "");
+                        // floorsTable columns: [0]Region [1]AOID [2]AssetName [3]Address [4]City
+                        //   [5]FLOOR [6]PARTNER [7]OI [8]m2r/FTE [9]FTE [10]m2r [11]Fit-Up [12]WP [13-16]Scen A-D [17]URL
+                        const oi    = (r.cells[7] ? r.cells[7].textContent.trim() : "");
+                        const ratio = parseOINum(r.cells[8] ? r.cells[8].textContent : "");
+                        const fte   = parseOINum(r.cells[9] ? r.cells[9].textContent : "");
+                        const m2r   = parseOINum(r.cells[10] ? r.cells[10].textContent : "");
                         rows.push({
                             region:    (r.cells[0] ? r.cells[0].textContent.trim() : ""),
                             aoid:      (r.cells[1] ? r.cells[1].textContent.trim() : ""),
                             assetName: (r.cells[2] ? r.cells[2].textContent.trim() : ""),
+                            oi:     oi,
                             m2r:    m2r,
                             fte:    fte,
                             ratio:  ratio !== 0 ? ratio : (fte > 0 ? m2r / fte : 0),
-                            fitup:  (r.cells[10] ? r.cells[10].textContent.trim() : ""),
-                            wp:     parseOINum(r.cells[11] ? r.cells[11].textContent : ""),
-                            scenA:  parseOINum(r.cells[12] ? r.cells[12].textContent : ""),
-                            scenB:  parseOINum(r.cells[13] ? r.cells[13].textContent : ""),
-                            scenC:  parseOINum(r.cells[14] ? r.cells[14].textContent : ""),
-                            scenD:  parseOINum(r.cells[15] ? r.cells[15].textContent : ""),
+                            fitup:  (r.cells[11] ? r.cells[11].textContent.trim() : ""),
+                            wp:     parseOINum(r.cells[12] ? r.cells[12].textContent : ""),
+                            scenA:  parseOINum(r.cells[13] ? r.cells[13].textContent : ""),
+                            scenB:  parseOINum(r.cells[14] ? r.cells[14].textContent : ""),
+                            scenC:  parseOINum(r.cells[15] ? r.cells[15].textContent : ""),
+                            scenD:  parseOINum(r.cells[16] ? r.cells[16].textContent : ""),
                         });
                     });
                     return rows;
@@ -5437,7 +5444,7 @@
                     const query = oiSearchInput ? oiSearchInput.value.trim().toLowerCase() : "";
                     oiFilteredRows = oiAllRows.filter(function (r) {
                         if (region && r.region !== region) return false;
-                        if (query && !r.assetName.toLowerCase().includes(query) && !r.aoid.toLowerCase().includes(query)) return false;
+                        if (query && !r.assetName.toLowerCase().includes(query) && !r.oi.toLowerCase().includes(query)) return false;
                         return true;
                     });
                     oiCurrentPage = 1;
@@ -5467,7 +5474,7 @@
                         const cols = [
                             { text: d.region,              sort: null },
                             { text: d.assetName,           sort: null },
-                            { text: d.aoid,                sort: null },
+                            { text: d.oi,                  sort: null },
                             { text: fmt(d.m2r, 1),         sort: d.m2r },
                             { text: fmt(d.fte, 0),         sort: d.fte },
                             { text: Number.isFinite(d.ratio) ? d.ratio.toFixed(1) : "0.0", sort: d.ratio },
