@@ -1059,7 +1059,8 @@
             font-weight: 700;
         }
 
-        #detailsTbody tr.details-row--highlighted {
+        #detailsTbody tr.details-row--highlighted,
+        #oiDetailsTbody tr.details-row--highlighted {
             background-color: var(--floor02);
             border: 0.5px var(--color-blue-500) solid;
             font-weight: 700;
@@ -11711,6 +11712,7 @@
                         const partnerHtml = (r.cells[6].innerHTML || "").trim() || "Vacant";
                         const oi = (r.cells[7] ? r.cells[7].textContent.trim() : "");
                         const m2r = parseNumber(r.cells[8].textContent);
+                        const wp = parseNumber(r.cells[12].textContent);
                         if (!floorLabel) return;
                         if (!floorsMap.has(floorLabel)) {
                             floorsMap.set(floorLabel, { floor: floorLabel, totalM2r: 0, partners: [], hasAnyRow: true });
@@ -11718,9 +11720,9 @@
                         const f = floorsMap.get(floorLabel);
                         if (m2r > 0) {
                             f.totalM2r += m2r;
-                            f.partners.push({ partnerHtml, oi, m2r });
+                            f.partners.push({ partnerHtml, oi, m2r, wp });
                         } else {
-                            f.partners.push({ partnerHtml, oi, m2r: 0 });
+                            f.partners.push({ partnerHtml, oi, m2r: 0, wp });
                         }
                     });
 
@@ -11733,8 +11735,8 @@
                         }
                         f.partners = f.partners
                             .filter((p) => (Number(p.m2r) || 0) > 0)
-                            .map((p) => ({ partnerHtml: p.partnerHtml, oi: p.oi || "", m2r: p.m2r, share: p.m2r / total }));
-                        if (!f.partners.length) f.partners = [{ partnerHtml: "Vacant", oi: "", m2r: 0, share: 1 }];
+                            .map((p) => ({ partnerHtml: p.partnerHtml, oi: p.oi || "", m2r: p.m2r, wp: p.wp || 0, share: p.m2r / total }));
+                        if (!f.partners.length) f.partners = [{ partnerHtml: "Vacant", oi: "", m2r: 0, wp: 0, share: 1 }];
                         return f;
                     });
 
@@ -11779,9 +11781,9 @@
                         const floorRow = document.createElement("div"); floorRow.className = "floor-row";
                         const bar = document.createElement("div"); bar.className = "floor-bar";
                         const floorM2r = Number(floorObj.totalM2r) || 0;
-                        const px = maxFloorM2r > 0
-                            ? Math.max(1, Math.round((floorM2r / maxFloorM2r) * BAR_FULL_PX))
-                            : Math.round(BAR_FULL_PX / 3);
+                        const ratio = maxFloorM2r > 0 ? floorM2r / maxFloorM2r : 0;
+                        const tier = ratio <= 1/3 ? 1 : ratio <= 2/3 ? 2 : 3;
+                        const px = tier * Math.round(BAR_FULL_PX / 3);
                         bar.style.flex = `0 0 ${px}px`; bar.style.width = `${px}px`; bar.style.maxWidth = `${px}px`;
 
                         floorObj.partners.forEach((p, idx) => {
@@ -11814,7 +11816,8 @@
                             }
                             const partnerLabel = String(key || "").replace(/&nbsp;/g, " ").replace(/<[^>]*>/g, " ").trim();
                             const oiStr = p.oi ? `\nOI: ${p.oi}` : "";
-                            seg.title = `${String(assetName).trim()} - Floor ${String(floorObj.floor).trim()}\n${partnerLabel}: ${(Number(p.m2r) || 0).toFixed(1)} m²r${oiStr}`;
+                            const wpStr = Number.isFinite(Number(p.wp)) ? `\nWorkpoints: ${Number(p.wp).toLocaleString()}` : "";
+                            seg.title = `${String(assetName).trim()} - Floor ${String(floorObj.floor).trim()}\n${partnerLabel}: ${(Number(p.m2r) || 0).toFixed(1)} m²r${oiStr}${wpStr}`;
                             bar.appendChild(seg);
                         });
 
@@ -12143,10 +12146,10 @@
 
                 // Expose global to sync highlight from the main-table click handler
                 window._syncOIHighlight = function (aoid) {
-                    if (selectedOIRow) { selectedOIRow.classList.remove("selected-row"); selectedOIRow = null; }
+                    if (selectedOIRow) { selectedOIRow.classList.remove("details-row--highlighted"); selectedOIRow = null; }
                     if (!oiTbody || !aoid) return;
                     const matchRow = oiTbody.querySelector('tr[data-aoid="' + aoid + '"]');
-                    if (matchRow) { selectedOIRow = matchRow; matchRow.classList.add("selected-row"); }
+                    if (matchRow) { selectedOIRow = matchRow; matchRow.classList.add("details-row--highlighted"); }
                 };
 
                 // Wire OI row click → open collapsibleDetailsPanel for that asset
@@ -12157,9 +12160,9 @@
                         if (!row) return;
                         const aoid = row.dataset.aoid;
                         // Highlight selected row
-                        if (selectedOIRow) selectedOIRow.classList.remove("selected-row");
+                        if (selectedOIRow) selectedOIRow.classList.remove("details-row--highlighted");
                         selectedOIRow = row;
-                        row.classList.add("selected-row");
+                        row.classList.add("details-row--highlighted");
                         if (aoid && typeof window._openDetailsByAOID === "function") {
                             window._openDetailsByAOID(aoid);
                         }
@@ -12168,7 +12171,7 @@
                 // Clear OI row highlight when OI panel is hidden
                 const _origHideOIPanel = hideOIPanel;
                 hideOIPanel = function () {
-                    if (selectedOIRow) { selectedOIRow.classList.remove("selected-row"); selectedOIRow = null; }
+                    if (selectedOIRow) { selectedOIRow.classList.remove("details-row--highlighted"); selectedOIRow = null; }
                     _origHideOIPanel();
                 };
 
