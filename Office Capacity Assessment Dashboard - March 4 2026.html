@@ -1697,6 +1697,77 @@
             width: auto;
             display: inline-block;
         }
+
+        /* ================================================================
+           PRINT UTILITIES & LAYOUT
+           ================================================================ */
+        .print-only  { display: none !important; }
+        /* .screen-only has no special screen rule — elements are visible by default */
+
+        .oi-pager-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        /* ================================================================
+           PAGE SETUP — landscape, moderate margins, page counter
+           ================================================================ */
+        @page {
+            size: landscape;
+            margin: 15mm 20mm 20mm 20mm;
+            @bottom-right {
+                content: "Page " counter(page) " of " counter(pages);
+                font-size: 9pt;
+                color: #555;
+            }
+        }
+
+        /* ================================================================
+           PRINT MEDIA QUERY
+           ================================================================ */
+        @media print {
+            /* --- Screen-only elements: hide --- */
+            .screen-only,
+            .toc-bar,
+            .breadcrumbs-wrap,
+            #filtersPanel,
+            section.details-title,
+            #collapsibleDetailsPanel,
+            .oi-pager-row,
+            #oiDetailsPanel .table-header-row,
+            #oiDetailsCloseBtn,
+            .footer-links,
+            #aboutDashboardModal { display: none !important; }
+
+            /* --- Print-only elements: show --- */
+            .print-only { display: block !important; }
+
+            /* --- Layout: full width when aside is gone --- */
+            .dashboard-layout { display: block !important; }
+            .dashboard-main   { width: 100% !important; }
+            .page-root        { padding: 0 !important; }
+            .page-inner       { padding: 0 !important; max-width: 100% !important; }
+
+            /* --- Dictionary: force-expand --- */
+            #dictionaryBody { display: block !important; }
+            #dictionaryPanel { max-height: none !important; overflow: visible !important; }
+            .dictionary-close { display: none !important; }
+
+            /* --- OI Details panel: keep visible if shown on screen --- */
+            #oiDetailsPanel:not([hidden]) { display: block !important; }
+
+            /* --- Footer About block --- */
+            .print-about-content { border-top: 1px solid #ccc; padding-top: 8pt; margin-bottom: 6pt; }
+            .print-about-content h3 { margin: 0 0 4pt; font-size: 11pt; }
+            .print-about-content p  { margin: 2pt 0; font-size: 9pt; }
+
+            /* --- Preserve colours & backgrounds --- */
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }
     </style>
 </head>
 
@@ -2209,10 +2280,13 @@
                 </tbody>
             </table>
         </div>
-        <div class="table-pager" id="oiPager">
-            <button id="oiPrevPage" class="button button--ghost">Previous</button>
-            <span id="oiPageInfo" class="table-pager-info"></span>
-            <button id="oiNextPage" class="button button--ghost">Next</button>
+        <div class="oi-pager-row">
+            <button id="printPdfBtn" class="button--primary screen-only" type="button">Print to PDF</button>
+            <div class="table-pager" id="oiPager">
+                <button id="oiPrevPage" class="button button--ghost">Previous</button>
+                <span id="oiPageInfo" class="table-pager-info"></span>
+                <button id="oiNextPage" class="button button--ghost">Next</button>
+            </div>
         </div>
     </section>
     <section id="collapsibleDetailsPanel" hidden>
@@ -10558,6 +10632,29 @@
             <div class="footer-links">
                 <a href="#" id="aboutDashboardLink">About this dashboard</a>
             </div>
+            <div class="print-about-content print-only">
+                <h3>About this dashboard</h3>
+                <p>
+                    This dashboard supports the National Strategic Portfolio
+                    Planning (NSPP) exercise to assess potential office space
+                    pressures arising from increased
+                </p>
+                <p>
+                    The dashboard is based on SIGMA source data, the authoritative
+                    system of record, incorporating workpoint and fit-up
+                    information, all validated through regional review.
+                </p>
+                <p>
+                    Calculations account for standard planning assumptions,
+                    and exclude non-office and
+                    Special Purpose Space.
+                </p>
+                <p>
+                    Any data anomalies identified should be addressed through the
+                    <a href="mailto:pierre-luc.pilon5@tpsgc-pwgsc.gc.ca">National Reporting and Data
+                        Management's Business Intelligence Team</a>.
+                </p>
+            </div>
             <div>Last updated: March 4 2026</div>
         </footer>
         <div id="aboutDashboardModal" class="modal-overlay" aria-hidden="true">
@@ -11958,6 +12055,7 @@
                 let oiFilteredRows = [];
                 let oiCurrentPage = 1;
                 const oiSortState = {};
+                let printMode = false;
 
                 function parseOINum(text) {
                     if (text == null) return 0;
@@ -12026,7 +12124,7 @@
 
                     oiTbody.innerHTML = "";
                     const start = (oiCurrentPage - 1) * OI_ROWS_PER_PAGE;
-                    const slice = oiFilteredRows.slice(start, start + OI_ROWS_PER_PAGE);
+                    const slice = printMode ? oiFilteredRows : oiFilteredRows.slice(start, start + OI_ROWS_PER_PAGE);
 
                     function fmt(n, d) {
                         d = d === undefined ? 0 : d;
@@ -12063,13 +12161,15 @@
                     // Colour negative scenario columns (indices 8-11 in this table)
                     if (typeof applyNegativeStyling === "function") applyNegativeStyling(oiTbody, [8, 9, 10, 11]);
 
-                    if (oiPageInfoEl) {
-                        oiPageInfoEl.textContent = total === 0
-                            ? "0 rows"
-                            : "Page " + oiCurrentPage + " of " + totalPages + " \u2022 " + total.toLocaleString() + " rows";
+                    if (!printMode) {
+                        if (oiPageInfoEl) {
+                            oiPageInfoEl.textContent = total === 0
+                                ? "0 rows"
+                                : "Page " + oiCurrentPage + " of " + totalPages + " \u2022 " + total.toLocaleString() + " rows";
+                        }
+                        if (oiPrevBtn) oiPrevBtn.disabled = oiCurrentPage <= 1 || total === 0;
+                        if (oiNextBtn) oiNextBtn.disabled = oiCurrentPage >= totalPages || total === 0;
                     }
-                    if (oiPrevBtn) oiPrevBtn.disabled = oiCurrentPage <= 1 || total === 0;
-                    if (oiNextBtn) oiNextBtn.disabled = oiCurrentPage >= totalPages || total === 0;
                 }
 
                 function showOIPanel(partner) {
@@ -12244,6 +12344,24 @@
                         });
                     });
                 }
+
+                // Print to PDF button
+                const printPdfBtn = document.getElementById("printPdfBtn");
+                if (printPdfBtn) printPdfBtn.addEventListener("click", function () { window.print(); });
+
+                // Render all OI rows before print; restore pagination after
+                window.addEventListener("beforeprint", function () {
+                    if (oiPanel && !oiPanel.hidden && oiFilteredRows.length > 0) {
+                        printMode = true;
+                        renderOIPage();
+                    }
+                });
+                window.addEventListener("afterprint", function () {
+                    if (printMode) {
+                        printMode = false;
+                        renderOIPage();
+                    }
+                });
             });
         </script>
         <script>
