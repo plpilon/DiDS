@@ -1749,6 +1749,9 @@
             /* --- Layout: full width when aside is gone --- */
             .dashboard-layout { display: block !important; }
             .dashboard-main   { width: 100% !important; }
+
+            /* --- KPI cards: lock to 5 columns regardless of viewport breakpoints --- */
+            .cards-row { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
             .page-root        { padding: 0 !important; }
             .page-inner       { padding: 0 !important; max-width: 100% !important; }
 
