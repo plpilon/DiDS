@@ -11960,6 +11960,13 @@ Workpoints: 2" style="width: 100%; background-color: var(--floor02);"></div></di
                         provinceSelect.value = codes.has(currentProvince) ? currentProvince : "";
                     }
 
+                    // Surplus section visibility: only show when "All Partners" is selected
+                    const surplusHeading = document.getElementById("main-section");
+                    if (surplusHeading) {
+                        const surplusWrap = surplusHeading.closest("section");
+                        if (surplusWrap) surplusWrap.hidden = !partnerIsAll;
+                    }
+
                     currentPage = 1;
                     renderPage();
                 }
@@ -13243,6 +13250,12 @@ Workpoints: 2" style="width: 100%; background-color: var(--floor02);"></div></di
 
                 function showOIPanel(partner) {
                     oiAllRows = buildOIRows(partner);
+                    // Default sort: Region → Asset Name → OI (all A–Z)
+                    oiAllRows.sort(function (a, b) {
+                        return (a.region    || "").localeCompare(b.region)    ||
+                               (a.assetName || "").localeCompare(b.assetName) ||
+                               (a.oi        || "").localeCompare(b.oi);
+                    });
                     if (oiPartnerName) oiPartnerName.textContent = partner;
                     const mainRegionFilter = document.getElementById("regionFilter");
                     if (oiRegionFilter) oiRegionFilter.value = mainRegionFilter ? mainRegionFilter.value.trim() : "";
