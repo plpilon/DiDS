@@ -12799,7 +12799,10 @@ Workpoints: 2" style="width: 100%; background-color: var(--floor02);"></div></di
                     const partnerMap = new Map();
                     oiRows.forEach((r) => {
                         const partnerHtml = (r.cells[6].innerHTML || "").trim();
-                        const partnerKey = partnerHtml.replace(/&nbsp;/g, " ").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() || "Unknown";
+                        const partnerText = partnerHtml.replace(/&nbsp;/g, " ").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+                        const oiText      = (r.cells[7] ? r.cells[7].textContent.trim() : "");
+                        const displayHtml = partnerText || oiText;
+                        const partnerKey  = partnerText || oiText || "Unknown";
                         const m2r   = parseNumber(r.cells[8].textContent);
                         const fte   = parseNumber(r.cells[9].textContent);
                         const fitup = (r.cells[11].textContent || "").trim();
@@ -12809,7 +12812,7 @@ Workpoints: 2" style="width: 100%; background-color: var(--floor02);"></div></di
                         const sC    = parseNumber(r.cells[15].textContent);
                         const sD    = parseNumber(r.cells[16].textContent);
                         if (!partnerMap.has(partnerKey)) {
-                            partnerMap.set(partnerKey, { partnerHtml, m2r: 0, fte: 0, fitup, wp: 0, sA: 0, sB: 0, sC: 0, sD: 0 });
+                            partnerMap.set(partnerKey, { partnerHtml: displayHtml, m2r: 0, fte: 0, fitup, wp: 0, sA: 0, sB: 0, sC: 0, sD: 0 });
                         }
                         const agg = partnerMap.get(partnerKey);
                         agg.m2r += m2r; agg.fte += fte; agg.wp += wp;
@@ -13164,6 +13167,8 @@ Workpoints: 2" style="width: 100%; background-color: var(--floor02);"></div></di
                             region:    (r.cells[0] ? r.cells[0].textContent.trim() : ""),
                             aoid:      (r.cells[1] ? r.cells[1].textContent.trim() : ""),
                             assetName: (r.cells[2] ? r.cells[2].textContent.trim() : ""),
+                            address:   (r.cells[3] ? r.cells[3].textContent.trim() : ""),
+                            city:      (r.cells[4] ? r.cells[4].textContent.trim() : ""),
                             oi:     oi,
                             m2r:    m2r,
                             fte:    fte,
@@ -13184,7 +13189,11 @@ Workpoints: 2" style="width: 100%; background-color: var(--floor02);"></div></di
                     const query = oiSearchInput ? oiSearchInput.value.trim().toLowerCase() : "";
                     oiFilteredRows = oiAllRows.filter(function (r) {
                         if (region && r.region !== region) return false;
-                        if (query && !r.assetName.toLowerCase().includes(query) && !r.oi.toLowerCase().includes(query)) return false;
+                        if (query &&
+                            !r.assetName.toLowerCase().includes(query) &&
+                            !r.address.toLowerCase().includes(query) &&
+                            !r.city.toLowerCase().includes(query) &&
+                            !r.oi.toLowerCase().includes(query)) return false;
                         return true;
                     });
                     oiCurrentPage = 1;
