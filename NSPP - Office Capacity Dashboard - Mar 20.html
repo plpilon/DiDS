@@ -13163,10 +13163,21 @@ Workpoints: 2" style="width: 100%; background-color: var(--floor02);"></div></di
                         const m2r   = parseOINum(r.cells[8] ? r.cells[8].textContent : "");
                         const fte   = parseOINum(r.cells[9] ? r.cells[9].textContent : "");
                         const ratio = parseOINum(r.cells[10] ? r.cells[10].textContent : "");
+                        const aoid      = (r.cells[1] ? r.cells[1].textContent.trim() : "");
+                        let   assetName = (r.cells[2] ? r.cells[2].textContent.trim() : "");
+                        // OI_TOTAL rows often have a blank Asset Name; fall back to a sibling row with the same AOID
+                        if (!assetName && aoid) {
+                            const sibling = Array.from(floorsTable.tBodies[0].rows).find(function (fr) {
+                                return fr !== r &&
+                                       fr.cells[1] && fr.cells[1].textContent.trim() === aoid &&
+                                       fr.cells[2] && fr.cells[2].textContent.trim();
+                            });
+                            if (sibling) assetName = sibling.cells[2].textContent.trim();
+                        }
                         rows.push({
                             region:    (r.cells[0] ? r.cells[0].textContent.trim() : ""),
-                            aoid:      (r.cells[1] ? r.cells[1].textContent.trim() : ""),
-                            assetName: (r.cells[2] ? r.cells[2].textContent.trim() : ""),
+                            aoid:      aoid,
+                            assetName: assetName,
                             address:   (r.cells[3] ? r.cells[3].textContent.trim() : ""),
                             city:      (r.cells[4] ? r.cells[4].textContent.trim() : ""),
                             oi:     oi,
