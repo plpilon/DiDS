@@ -1,0 +1,587 @@
+﻿NSPP - Office Capacity Dashboard - Mar 20 2026
+Office Capacity Assessment Dashboard
+Occupancy Instrument Details – For internal PSPC use
+Purpose
+Assessment Completion Overview
+Surplus(Deficit) Overview
+Surplus (Deficit) by Asset
+Partner Space Summary
+Asset Details by Floor and Partner
+Asset:
+Building View
+Dictionary
+About this dashboard
+"March 20, 2026"
+"This dashboard allows users to view data related to the capacity of office space within the PSPC-administered office portfolio, including number of primary workpoints currently available."
+It contains data for Office space located within Office Assets only.
+Non-office assets and Special Purpose Space within Office assets are not reflected in this dashboard.
+Occupancies managed by the Science and Parliamentary Infrastructure Branch are not reflected.
+Filters
+"This section shows the net position of individual assets based on selected filters (region and/or partner). The different measures (e.g m2r, workpoints, surplus or deficit) are aggregated at the asset level for all partners accommodated at that address."
+"To view the measure for a given partner, select an asset by clicking on a table row. Press the Escape button to reset the view."
+"Lists each leased out space held by the selected partner, location, size (m²), FTEs accommodated (10% reduction applied), workpoints available, and projected surplus or deficit under three occupancy scenarios."
+"This section summarizes the results of the assessment of primary workpoints across the PSPC-administered office portfolio, viewable nationally, by region, and/or by partner. Filters applied here carry over to other dashboard sections."
+Assessment Completion Overview data is calculated as follows:
+Surplus (Deficit) Overview data is calculated as follows:
+"This section shows asset-level data based on selected filters (region and/or partner), including occupancy details (as of November 3, 2025) and available primary workpoints."
+Note: the occupancy data shown represents the aggregate data at the asset level for all partners accommodated at each address.
+"Clicking an asset in the Surplus (Deficit) by Asset section opens the Asset Details by Floor and Partner view, showing a stacking diagram, asset information, and partner occupancy details."
+"The fit-up type of a given asset is determined by the fit-up type of its floors. Unless a floor's current (observed) fit-up differs from the fit-up captured in SIGMA, the latter is used. ""Mixed"" fit-up type indicates that floors of an asset are fit-up using multiple standards."
+"The number of FTEs accommodated within an asset, as per active Lease-Out Contracts (also known as Occupancy Instruments), reduced by 10%."
+N/A or N/R may be displayed in some data fields.
+"A real property office asset is a building or tower. Each building or tower is counted as one asset, but if a complex or campus comprises multiple towers or buildings, each tower or building will be counted individually as one asset (i.e. Guy Favreau complex is counted as 3 Assets). For leased properties, a building is counted once as a single asset, even if it contains multiple leases."
+"This field provides context about the asset or its occupancies, such as major construction underway or an assessment not required due to upcoming disposal or release."
+"Confirmed primary individual workpoints per asset, or per occupancy. Primary individual workpoints are designed for focused activities with formal posture and mid- to long-term use. Each includes an adjustable task chair and may have monitors and/or a height-adjustable surface."
+Primary individual workpoint types can include:
+This dashboard supports the National Strategic Portfolio Planning (NSPP) exercise to assess potential office space pressures arising from increased
+"The dashboard is based on SIGMA source data, the authoritative system of record, incorporating workpoint and fit-up information, all validated through regional review."
+"Calculations account for standard planning assumptions, and exclude non-office and Special Purpose Space."
+Any data anomalies identified should be addressed through the National Reporting and Data Management's Business Intelligence Team .
+"Number of Assets Assessed : Total assets where all floors are either assigned a workpoint count or deemed not requiring assessment (e.g., storage or conference floors, etc.)."
+"Number of Floors Assessed : Total floors assessed, meaning each has a workpoint count or is identified as not requiring assessment (e.g., storage or conference floors, etc.). Includes floors in fully and partially assessed assets."
+Number of Workpoints : Total primary individual workpoints identified. Workpoint counts are gathered through site visits and floorplan reviews.
+"Number of Full-Time Equivalents (FTEs) : Total FTEs captured on the Occupancy Instruments included in the assessment, reduced by 10%."
+60% Assigned : Displays the aggregate amount of surplus (positive number) or deficit (negative number) workpoints available or required for an in-office scenario where 60% of FTEs have an assigned workpoint and the remainder are unassigned. The aggregate amount sums all occupancy-level surpluses and deficits for the filtered selections.
+80% Assigned : Displays the aggregate amount of surplus (positive number) or deficit (negative number) workpoints available or required for an in-office scenario where 80% of FTEs have an assigned workpoint and the remainder are unassigned. The aggregate amount sums all occupancy-level surpluses and deficits for the filtered selections.
+Fully Assigned : Displays the aggregate amount of surplus (positive number) or deficit (negative number) workpoints available or required for an in-office scenario where 100% of FTEs have an assigned workpoint. The aggregate amount sums all occupancy-level surpluses and deficits for the filtered selections.
+"N/A : Assessment completed, but no primary workpoints are present—often due to vacancy, decommissioning, or space not fit-up as office (e.g., SPS misidentified, conference room, etc.)."
+"N/R : Region deemed assessment Not Required, typically due to upcoming disposal/release or security restrictions (e.g., Public Safety Special)."
+Workstations
+Workpods
+Focus rooms
+Enclosed offices
+Table of Content
+NSPP Executive Dashboards
+Region
+Partner
+Province
+Reset Filters
+Previous
+Next
+Print to PDF
+All
+Atlantic
+Quebec
+NCA
+Ontario
+Western
+Pacific
+Tous les partenaires
+Normes d’accessibilité Canada
+Service canadien d’appui aux tribunaux administratifs
+Agriculture et Agroalimentaire Canada
+Agence de promotion économique du Canada atlantique
+Agence des services frontaliers du Canada
+Agence du revenu du Canada
+École de la fonction publique du Canada
+Centre canadien d’hygiène et de sécurité au travail
+Régie de l’énergie du Canada
+Agence canadienne d’inspection des aliments
+Commission canadienne des grains
+Patrimoine canadien
+Station canadienne de recherche dans l’Extrême-Arctique
+Commission canadienne des droits de la personne
+Instituts de recherche en santé du Canada
+Office de la propriété intellectuelle du Canada
+Secrétariat des conférences intergouvernementales canadiennes
+Agence canadienne de développement économique du Nord
+Commission canadienne de sûreté nucléaire
+Agence canadienne du pari mutuel
+Conseil de la radiodiffusion et des télécommunications canadiennes
+Agence spatiale canadienne
+Bureau de la sécurité des transports du Canada
+Office des transports du Canada
+Commission civile d’examen et de traitement des plaintes relatives à la GRC
+Centre de la sécurité des télécommunications Canada
+CORCAN
+Service correctionnel Canada – Bureau de libération conditionnelle
+Service correctionnel Canada – AC et Régions
+Service administratif des tribunaux judiciaires
+Relations Couronne-Autochtones et Affaires du Nord Canada
+Femmes et Égalité des genres Canada
+Ministère de la Justice Canada
+Défense nationale
+Ressources naturelles Canada
+Développement économique Canada pour les régions du Québec
+Emploi et Développement social Canada
+Environnement et Changement climatique Canada
+Agence fédérale de développement économique pour le Nord de l’Ontario
+Agence fédérale de développement économique pour le Sud de l’Ontario
+Ministère des Finances Canada
+Agence de la consommation en matière financière du Canada
+Centre d’analyse des opérations et déclarations financières du Canada
+Pêches et Océans Canada
+GCcoworking / cotravailGC
+Affaires mondiales Canada
+Gouverneur général
+Santé Canada
+Chambre des communes
+"Logement, Infrastructures et Collectivités Canada"
+Commission de l’immigration et du statut de réfugié du Canada
+"Immigration, Réfugiés et Citoyenneté Canada"
+Agence d’évaluation d’impact du Canada
+Pétrole et gaz des Indiens du Canada
+Services aux Autochtones Canada
+"Innovation, Sciences et Développement économique Canada"
+Commission mixte internationale
+Investir au Canada
+Commission du droit du Canada
+Commission des débats des chefs
+Bibliothèque et Archives Canada
+Comité externe d’examen des griefs militaires
+Commission d’examen des plaintes concernant la police militaire du Canada
+Office national du film
+Conseil national de recherches Canada
+Office de surveillance des activités en matière de sécurité nationale et de renseignement
+Conseil de recherches en sciences naturelles et en génie du Canada
+Bureau du vérificateur général du Canada
+Bureau du directeur général des élections
+Commissariat à la magistrature fédérale Canada
+Commissariat au lobbying du Canada
+Commissariat aux langues officielles
+Commissariat aux conflits d’intérêts et à l’éthique
+L’Enquêteur correctionnel Canada
+Service des poursuites pénales du Canada
+Bureau du commissaire au renseignement
+Commissariat à la protection de la vie privée du Canada ; Commissariat à l’information du Canada
+Commissariat à l’intégrité du secteur public du Canada
+Bureau du surintendant des institutions financières Canada
+Développement économique Canada pour le Pacifique
+Parcs Canada
+Service de protection parlementaire
+Commission des libérations conditionnelles du Canada
+Conseil d’examen du prix des médicaments brevetés Canada
+Développement économique Canada pour les Prairies
+Bureau du Conseil privé
+Agence de la santé publique du Canada
+Sécurité publique Canada
+Sécurité publique Canada – Spéciale
+Commission de la fonction publique du Canada
+Services publics et Approvisionnement Canada
+Comité externe d’examen de la GRC
+Gendarmerie royale du Canada
+Sénat
+Services partagés Canada
+Conseil de recherches en sciences humaines du Canada
+Statistique Canada
+Statistique Canada – Projet du recensement
+Bureau de la traduction
+Transports Canada
+Secrétariat du Conseil du Trésor du Canada
+Anciens Combattants Canada
+Tribunal des anciens combattants (révision et appel)
+All Regions
+Total Rentable Area
+Total Assets
+Total Floors
+Total Workpoints
+Total FTE (10% reduction)
+60% Assigned Scenario
+80% Assigned Scenario
+Fully Assigned Scenario
+"/ 347,484 m²r"
+/ 125 assets
+/ 455 floors
+workpoints
+FTEs
+Search asset
+Search asset or OI…
+"The number of FTEs accommodated within an asset, as per active Lease-Out Contracts (also known as Occupancy Instruments)."
+"The fit-up type of a given asset is determined by the fit-up type of its floors. Unless a floor's current (observed) fit-up differs from the fit-up captured in SIGMA, the latter is used. “Mixed” fit-up type indicates that floors of an asset are fit-up using multiple standards."
+Collapse filters
+AOID
+Asset
+Asset Name
+Address
+City
+m2r
+FTE (incl. 10% reduction)
+m2r/FTE
+Fit-up
+Workpoints
+Assessed
+Assigned FTE (5 Days)
+Notes
+"Scenarios, 4 Days"
+Partners
+A - Unassigned
+60% Assigned
+80% Assigned
+Assigned
+OI(s)
+Scenarios
+Fully Assigned
+FLOOR
+PARTNER
+OI
+FTE Accommodated
+Fit-Up
+URL
+B - 60% Assigned
+C - 80% Assigned
+D - Assigned
+"The number of employees accommodated in an asset, as reported through partner occupancy instruments. FTE (incl. a 10% reduction)"
+Measure
+National
+Office - Traditional fit-up
+Office - Workplace 2.0
+Mixed
+Innovation
+Science
+and Economic Development Canada
+Immigration
+Refugees and Citizenship Canada
+SPS Space. (No Workpoints)
+Space released
+PSS Spaces - Assessment not completed - Security
+Vacant Space not Fit-up
+Office
+IRB space on the 7th floor has been released and is currently unfurnished; Vacant Space not Fit-up
+N/A
+"Floor 2, 3, 9-13 Decommissioned (No furniture)"
+Asset tagged for disposal - partially or fully decommissioned
+No workpoints on 4th floor. Used as cafeteria/mess and building mechanical and electrical areas
+Office - GCworkplace
+PSS Spaces - Assessment not completed - Security; Vacant Space not Fit-up
+Veterans Review and Appeal Boad
+Bibliothèque du Parlement
+Housing
+Infrastructure and Communities Canada
+CRA - The only floor still operational is the 8th. The 10th floor has been fully decommissioned.
+Office - Non PSPC Standard
+Vacant Space not Fit-up; Floor B1 SPS Space. (No Workpoints)
+N/R
+"Floor GR, 2, 3, 6, 7, 9-11 Decommissioned (No furniture)"
+"Vacant Space not Fit-up; CGC floors B1, 13, 15, 16 SPS Space. (No Workpoints); CGC releasing the 7th floor in 2026 - space will be used for another client as part of a lease expiry - furniture will be moved with other client."
+Floor 13 Decommissioned
+Decommissioned Space
+Vacant Space not Fit-up; ISC 6th floor SPS Space. (No Workpoints)
+Major construction in progress
+ESDC is SPS Space. (No Workpoints)
+SPS - Non-PSPC Standard
+11th floor is a lunchroom (No Workpoints)
+Ministers Office
+Office - Non-PSPC Standard
+gcworkplace
+vacant
+This line added by BGIS; Refer to pic for 2nd floor; same type
+Office-General Administrative-Not Modernized
+Photo/drawing provided
+Floorplan
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll/link/609282309
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll/link/609299861
+Floor 3
+14th Floor
+06th Floor
+07th Floor
+08th Floor
+09th Floor
+11th Floor
+12th Floor
+10th Floor
+15th Floor
+13th Floor
+Site Photos*no photos in folder
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll/link/337140880
+Document Overview: 2017-01-18_TQC ONF TO.PDF
+Site Photos - Extended ECM CE 24.3*no photos in folder
+Office - TBD
+Site Photos*Photos are not organized by floor
+PDV floors 2-22 excluding 3rd floor.msg
+PDV ground floor .msg
+Document Overview: 27-2017-0314- E-6.2 -Pwr & Sys_METRIC As Built.pdf
+Office - Lite fit-up (FFE)
+"9th floor, Zone 001, 002, 003, 004 MGERC"
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll/link/608252897
+Site Photos
+Floor 22 - Extended ECM CE 24.3
+Bytown Pavilion - Terrasse Floor
+Bytown Pavilion - Floor 1
+Floor 1*no photos in folder
+PSPC - Extended ECM CE 24.3*No site photos folder in main assessment folder
+Document Overview: 655_floor plans.pdf
+none available
+Drawings
+Site Photos - Extended ECM CE 24.3*photos are not organized by floor
+7th Flr
+2nd Flr
+19th Flr
+18th Flr
+20th Flr
+6th Flr
+8th Flr
+4th Flr
+5th Flr
+9th Flr
+17th Flr
+15th Flr
+14th Flr
+13th Flr
+16th Flr
+3rd Flr
+Client taking on space as custodial
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll?func=ll&objaction=overview&objid=608432099
+Site Photos*photos are not organized by floor
+Floor 24
+Office - Public Contact
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll?func=ll&objaction=overview&objid=609179635
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll?func=ll&objaction=overview&objid=609151673
+Floor 13*no photos in folder
+Site Photos - Extended ECM CE 24.3 *no photos in folder
+Undisclosed location- informaiton and as built not available
+Site Photos - Extended ECM CE 24.3
+Office-Call Centres
+Rm2 space includes call centre training rooms.
+Ground Floor - Extended ECM CE 24.3
+Second Floor - Extended ECM CE 24.3
+17th Floor
+Document Overview: 21st Floor.jpg
+16th Floor*no photos in folder
+14th Floor*no photos in folder
+20th Floor
+8th Floor
+10th Floor*no photos in folder
+12th Floor*no photos in folder
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll?func=ll&objaction=overview&objid=194788629
+Furniture Layout
+Document Overview: ott-m19-354@nrc-cnrc.gc.ca_20170908_133723.pdf
+sps
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll?func=ll&objaction=overview&objid=609174072
+n/a
+No site photos in assessment folder
+01. Basement
+02. Ground
+Floor 02
+Floor 03
+Floor 08
+Floor 09
+TSB - Extended ECM CE 24.3*No site photos folder in main assessment folder
+Sussex Pavilion - 3rd Floor
+Rideau Pavilion - 1st Floor
+Rideau Pavilion - Terrasse Floor
+Sussex Pavilion - 2nd Floor
+Sussex Pavilion - 5th Floor
+Sussex Pavilion - 4th Floor
+None Available
+Sussex Pavilion - 6th Floor
+RC
+2e Floor - PCA
+3e Floor - PCA
+4e Floor - PCA
+5e Floor - PCA
+6e Floor - PCA
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll/link/607470085
+Site Photos (Limited Photos on Site) - Extended ECM CE 24.3
+Sussex Pavilion - 7th Floor
+Sussex Pavilion - 8th Floor
+9th Floor
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll?func=ll&objaction=overview&objid=192880101
+Site Photos - Extended ECM CE 24.3*photos are not clearly organized by floor
+Document Overview: 3F - ISED and FEDDEV 151 Yonge Toronto Floor plan.pdf
+Document Overview: 14F - ISED and FEDDEV 151 Yonge Toronto Floor plan.pdf
+Document Overview: 4F - ISED 151 Yonge Toronto Floor plan.pdf
+6th Floor
+5th Floor
+Site Photos*No photos in folder
+Photos-GAC VIP lounge 1000 Airport Pkwy
+Site Photos - 60 rue Laval*photos are not organized by floor
+7th floor
+5th floor
+6th floor
+8th floor
+11th floor
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll?func=ll&objaction=overview&objid=609176415
+Not available- client moving to 200 Town
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll/app/nodes/598610410
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll/app/nodes/598610005
+18th Floor - Extended ECM CE 24.3
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll/app/nodes/598610626
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll/app/nodes/598610001
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll/app/nodes/598634620
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll/app/nodes/598610628
+TBD. Perhaps a furniture solution or new space would be required.
+Tower 3 - Floor 3
+Tower 3 - Floor 4
+Tower 3 - Floor 5
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll/link/608273221
+Office - Departmental GCcoworking
+16th Floor
+Photos.zip - Extended ECM CE 24.3
+C3 - IRCC - Extended ECM CE 24.3
+traditional
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll?func=ll&objaction=overview&objid=609189380
+Photos - Extended ECM CE 24.3
+Floor 1
+Floor 2
+Floor 5
+18th Floor
+2nd Floor
+3rd Floor
+7th Floor
+n/a moving
+2021 10 30 Floor plans pdf
+moving
+Site Photos - Extended ECM CE 24.3*photos are not organized by floor or partner
+Office - Government of Canada GCcoworking
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll/link/430634124
+Floor 12*no photos in folder
+Floor 11*no photos in folder
+Floor 10*no photos in folder
+Photos-10th & 11th (fitup)
+C2-DND.docx - Extended ECM CE 24.3
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll/app/nodes/566150647
+1st Floor
+19th Floor
+12th floor
+18F Photos
+14th Floor - CNSC
+14th flr
+13th flr
+11th flr
+12th flr
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll?func=ll&objaction=overview&objid=609180154
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll?func=ll&objaction=overview&objid=609189367
+10th Floor - CNSC
+4th - CNSC
+6th Floor - CNSC
+5th Floor - CNSC
+3rd - CNSC
+2nd - CNSC
+1st - CNSC
+12th Floor - CNSC
+427 Laurier 8th floor pictures .msg
+4th Floor
+330 Sparks Tower C
+"Photo/drawing provided. These are Service Canada Centre service counters, not GOS."
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll/link/607691239
+Photos of Space https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll/link/608455990
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll?func=ll&objaction=overview&objid=609169812
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll?func=ll&objaction=overview&objid=609168712
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll?func=ll&objId=141366968&objAction=browse&viewType=1
+Floor 7*no photos in folder
+3rd floor
+"HC*photos are separated into 2 folders, but not organized by floor"
+ECCC - GR Floor - 719 Heron Site assessment.docx - Extended ECM CE 24.3
+Floor GR*no photos in folder
+Floor 1*no photos in folder; mislabeled as floor 1- should be floor 2
+Floor 8*no photos in folder
+Site Photos*photos are not organized by client or floor
+Exempt - PSPC to complete
+Floor 5*no photos in folder
+Floor 9*no photos in folder
+8th - Extended ECM CE 24.3
+11th - Extended ECM CE 24.3
+3rd - Extended ECM CE 24.3*no photos in folder
+4th - Extended ECM CE 24.3*no photos in folder
+5th - Extended ECM CE 24.3
+12th - Extended ECM CE 24.3*no photos in folder
+2nd floor
+Ground floor
+3rd Floorhttps://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll/app/nodes/390142942
+1st Floor (Ground Floor)
+T1 - 6th Floorhttps://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll/app/nodes/390141830
+Floor 6
+Floor 4
+23rd Floor
+22nd Floor
+21st Floor
+17th Floor - DND
+18th Floor - DND
+Traditional and Accommodation DTA (sit/stand - 1 workstation).
+Office - Quasi - Judicial
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll?func=ll&objaction=overview&objid=609183296
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll?func=ll&objaction=overview&objid=609194543
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll?func=ll&objaction=overview&objid=609168715
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll?func=ll&objaction=overview&objid=609168922
+4th floor
+This floor is vacant. Current project in delivery to move passport to another location.
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll?func=ll&objId=423393972&objAction=browse&viewType=1
+180 Kent Floor SSOPF Site Photos
+05th Floor
+Document Overview: 180 Queen St W_9TH FLOOR V2.pdf
+Not available
+340 Laurier 10th pictures.docx - Extended ECM CE 24.3
+340 Laurier 12th floor Pics.docx - Extended ECM CE 24.3
+https://gcdocs.gc.ca/tpsgc-pwgsc/llisapi.dll?func=ll&objaction=overview&objid=609189061
+Floor 14
+Floor 8
+Floor 12
+3 - Pictures.zip - Extended ECM CE 24.3
+spsp
+Site Pictures - Extended ECM CE 24.3*photos are not organized by floor
+2nd floor - Extended ECM CE 24.3
+1st Floor - Extended ECM CE 24.3
+B1 - Extended ECM CE 24.3
+3rd Floor - Extended ECM CE 24.3
+2nd floor JPG
+3rd Floor JPG
+Site Photos*remainder of photos are not organized by floor
+4th Floor JPG
+5th Floor JPG
+6th Floor JPG
+Basement 1 JPG
+7th Floor JPG
+9th Floor JPG
+1st Floor JPG
+8th Floor JPG
+10th Floor JPG
+Floor 6*no photos in folder
+4th Floor - GAC
+photo/drawing provided
+Floors 7 & 8
+Photo/drawing unavailabe
+none avaiable
+Photo/drawing unavailable
+7th - Extended ECM CE 24.3
+Floor plan provided. Move in date for Shared Services Canada expected to be in February 2026.
+OI expired - space returned to Landlord
+Site Photos 12th floor
+N/a
+Level 21
+Asset % Assessed
+Asset Assessed
+Asset Count
+Floor % Assessed
+Floor Assessed
+Floor Count
+Workpoints Sum
+m2r % Assessed
+m2r Assessed
+m2r Total
+Total
+Vacant
+Region:
+Address:
+Rentable area (m²r):
+Occupancy:
+Fit-up type:
+Special Considerations:
+Section 1: Portfolio Overview
+Section 2: Surplus (Deficit) by Asset
+Section 3: Partner Space Summary
+Section 4: Asset Details View
+Fit-Up Type
+Full-Time Equivalent (FTE) (incl. 10% reduction)
+Non-Numeric Values
+Office Asset
+Special Considerations
+Last updated: March 24 2026
+Back to top
+Newfoundland and Labrador
+Nova Scotia
+New Brunswick
+Prince Edward Island
+Manitoba
+Saskatchewan
+Alberta
+Nunavut
+Northwest Territory
+Yukon
+British Columbia
+Expand filters
+Multiple partners
+m²r
+assets
+floors
+Page
+rows
