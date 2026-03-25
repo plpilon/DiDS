@@ -2649,7 +2649,7 @@
 
                     function parseNumber(str) {
                         if (!str) return 0;
-                        return Number(String(str).replace(/,/g, "")) || 0;
+                        return Number(String(str).replace(/[\s,]/g, "")) || 0;
                     }
 
                     function computeDelta(currentValueStr, previousValueStr) {
